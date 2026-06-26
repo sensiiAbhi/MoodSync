@@ -37,7 +37,10 @@ class SpotifyClient:
 
         resp = await self._http.post(
             SPOTIFY_AUTH_URL,
-            headers={"Authorization": f"Basic {encoded}"},
+            headers={
+                "Authorization": f"Basic {encoded}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
             data={"grant_type": "client_credentials"},
         )
         resp.raise_for_status()

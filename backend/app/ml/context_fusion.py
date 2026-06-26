@@ -130,7 +130,7 @@ MOOD_BASE_PROFILES = {
         acousticness_min=0.30, acousticness_max=0.72,
         danceability_min=0.15, danceability_max=0.48,
         speechiness_max=0.05,
-        seed_genres=["classical", "lo-fi", "post-rock", "neo-classical"],
+        seed_genres=["classical", "chill", "ambient", "study"],
     ),
     "relaxed": MusicProfile(
         tempo_min=58, tempo_max=88, tempo_target=73,
@@ -140,7 +140,7 @@ MOOD_BASE_PROFILES = {
         acousticness_min=0.50, acousticness_max=0.92,
         danceability_min=0.20, danceability_max=0.55,
         speechiness_max=0.10,
-        seed_genres=["jazz", "acoustic", "indie-pop", "soft-rock"],
+        seed_genres=["jazz", "acoustic", "indie-pop", "chill"],
     ),
 }
 
@@ -154,35 +154,35 @@ ACTIVITY_MODIFIERS = {
         "energy_delta": -0.08,
         "instrumentalness_min_override": 0.70,
         "speechiness_max_override": 0.05,
-        "extra_genres": ["lo-fi", "study"],
+        "extra_genres": ["chill", "study"],
     },
     "coding": {
         "tempo_delta": 0,
         "energy_delta": +0.05,
         "instrumentalness_min_override": 0.65,
         "speechiness_max_override": 0.06,
-        "extra_genres": ["electronic", "synth"],
+        "extra_genres": ["electronic", "synth-pop"],
     },
     "reading": {
         "tempo_delta": -15,
         "energy_delta": -0.12,
         "instrumentalness_min_override": 0.75,
         "speechiness_max_override": 0.04,
-        "extra_genres": ["acoustic", "chamber-music"],
+        "extra_genres": ["acoustic", "classical"],
     },
     "deep_work": {
         "tempo_delta": -10,
         "energy_delta": -0.05,
         "instrumentalness_min_override": 0.80,
         "speechiness_max_override": 0.03,
-        "extra_genres": ["classical", "neo-classical"],
+        "extra_genres": ["classical", "ambient"],
     },
     "creative_thinking": {
         "tempo_delta": +5,
         "energy_delta": +0.08,
         "instrumentalness_min_override": 0.35,
         "speechiness_max_override": 0.12,
-        "extra_genres": ["indie", "experimental"],
+        "extra_genres": ["indie", "idm"],
     },
     "gym_workout": {
         "tempo_delta": +25,
@@ -210,7 +210,7 @@ ACTIVITY_MODIFIERS = {
         "energy_delta": -0.28,
         "instrumentalness_min_override": 0.88,
         "speechiness_max_override": 0.02,
-        "extra_genres": ["ambient", "drone", "new-age"],
+        "extra_genres": ["ambient", "new-age", "sleep"],
     },
     "sleeping": {
         "tempo_delta": -22,
@@ -238,7 +238,7 @@ ACTIVITY_MODIFIERS = {
         "energy_delta": +0.05,
         "instrumentalness_min_override": 0.55,
         "speechiness_max_override": 0.08,
-        "extra_genres": ["classical", "jazz", "lo-fi"],
+        "extra_genres": ["classical", "jazz", "chill"],
     },
 }
 
