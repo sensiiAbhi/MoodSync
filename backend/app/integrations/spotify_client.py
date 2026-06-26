@@ -78,7 +78,8 @@ class SpotifyClient:
             params=params,
         )
         if resp.status_code != 200:
-            return self._mock_recommendations(spotify_params)
+            err_msg = f"API Error {resp.status_code}: {resp.text}"
+            return self._mock_recommendations(spotify_params, err_msg)
 
         data = resp.json()
         tracks = data.get("tracks", [])
@@ -97,9 +98,12 @@ class SpotifyClient:
             )
             if retry_resp.status_code == 200:
                 tracks = retry_resp.json().get("tracks", [])
+            else:
+                err_msg = f"Retry Error {retry_resp.status_code}: {retry_resp.text}"
+                return self._mock_recommendations(spotify_params, err_msg)
                 
         if not tracks:
-            return self._mock_recommendations(spotify_params)
+            return self._mock_recommendations(spotify_params, "Error: Spotify returned 0 tracks for these genres")
             
         return tracks
 
@@ -184,6 +188,12 @@ class SpotifyClient:
         merged = []
         for track in tracks:
             tid = track.get("id", "")
+            
+            # If it's a mock track, it already has audio_features
+            if str(tid).startswith("mock_") and "audio_features" in track:
+                merged.append(track)
+                continue
+                
             feats = features_map.get(tid)
             if feats:
                 track["audio_features"] = feats
@@ -261,12 +271,12 @@ class SpotifyClient:
 
     # ─────────────────────── MOCK DATA (dev mode) ───────────────────────
 
-    def _mock_recommendations(self, params: Dict) -> List[Dict]:
-        """Return realistic mock tracks when Spotify API is not configured."""
+    def _mock_recommendations(self, params: Dict, error_msg: str = "Spotify API not configured") -> List[Dict]:
+        """Return realistic mock tracks when Spotify API is not configured or fails."""
         mock_tracks = [
             {
                 "id": f"mock_{i:04d}",
-                "name": name,
+                "name": error_msg if i == 0 else name,
                 "artists": [{"name": artist}],
                 "album": {"name": album, "images": [{"url": f"https://picsum.photos/seed/{i+10}/300/300"}]},
                 "duration_ms": 200000 + i * 5000,
