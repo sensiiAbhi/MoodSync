@@ -21,7 +21,7 @@ from app.schemas.recommendation import (
 from app.ml.mood_classifier import mood_classifier
 from app.ml.context_fusion import context_fusion_engine
 from app.ml.ranking_engine import ranking_engine
-from app.integrations.spotify_client import spotify_client
+from app.integrations.music_client import music_client
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
@@ -67,15 +67,15 @@ async def generate_recommendations(
         desired_outcome=payload.desired_outcome,
     )
 
-    # Get Spotify recommendations
-    spotify_params = context_fusion_engine.profile_to_spotify_params(music_profile)
-    spotify_params["limit"] = 50
+    # Get music recommendations
+    music_params = context_fusion_engine.profile_to_music_params(music_profile)
+    music_params["limit"] = 50
 
-    candidates = await spotify_client.get_recommendations_with_features(spotify_params)
+    candidates = await music_client.get_recommendations_with_features(music_params)
 
     if not candidates:
         # Fallback to mock
-        candidates = spotify_client._mock_recommendations(spotify_params)
+        candidates = music_client._mock_recommendations(music_params)
 
     # Rank candidates
     ranked_tracks = ranking_engine.rank_tracks(

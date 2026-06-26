@@ -5,7 +5,7 @@ const FEATURES = [
   { icon: '🧠', title: 'Mood Classification', desc: 'Deep psychological profiling across 7 dimensions mapped to Russell\'s Circumplex Model.' },
   { icon: '🎯', title: 'Context-Aware AI', desc: 'ISO Principle-based recommendation engine that matches your mood, then guides you to your goal.' },
   { icon: '📊', title: 'Behavioral Analytics', desc: 'Track mood trends, listening patterns, and recommendation effectiveness over time.' },
-  { icon: '🎵', title: 'Audio Feature Analysis', desc: 'Every recommendation backed by Spotify audio features — BPM, energy, valence, instrumentalness.' },
+  { icon: '🎵', title: 'Audio Feature Analysis', desc: 'Every recommendation backed by rich audio features — BPM, energy, valence, instrumentalness.' },
   { icon: '🔄', title: 'Adaptive Learning', desc: 'Rate sessions and the system personalizes algorithm weights to your preferences.' },
   { icon: '🔒', title: 'Privacy First', desc: 'GDPR-compliant, your psychological data stays yours. Export or delete anytime.' },
 ]
@@ -133,7 +133,7 @@ export default function LandingPage() {
             {
               step: '03', icon: '✦',
               title: 'Smart Recommendations',
-              desc: 'Spotify tracks ranked by Mood Alignment Score, Historical Effectiveness, and Personal Preference. With explanations for each track.',
+              desc: 'High-quality tracks ranked by Mood Alignment Score, Historical Effectiveness, and Personal Preference. With explanations for each track.',
               color: '#EC4899',
             },
           ].map(step => (
@@ -251,7 +251,7 @@ export default function LandingPage() {
       }}>
         <p>MoodSync © 2026 · Context-Aware Psychological Music Recommendation Platform</p>
         <p style={{ marginTop: 8 }}>
-          Built with FastAPI · PostgreSQL · Scikit-Learn · React · Spotify API
+          Built with FastAPI · PostgreSQL · Scikit-Learn · React · iTunes API
         </p>
       </footer>
     </div>

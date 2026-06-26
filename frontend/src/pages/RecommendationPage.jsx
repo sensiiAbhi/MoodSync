@@ -230,7 +230,7 @@ export default function RecommendationPage() {
                             textDecoration: 'none', fontWeight: 600,
                           }}
                         >
-                          ▶ Spotify
+                          ▶ Apple Music
                         </a>
                       </div>
                     </div>
