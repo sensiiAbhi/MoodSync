@@ -41,25 +41,25 @@ MoodSync is an intelligent platform that recommends music based on your **psycho
 └────────────────────┬────────────────────────────────────┘
                      │ HTTP / JSON
 ┌────────────────────▼────────────────────────────────────┐
-│                   FastAPI Backend                        │
+│                   FastAPI Backend                       │
 │  Auth · Mood · Activities · Recommendations             │
 │  Feedback · Analytics · Playlists                       │
-└──────┬─────────────┬───────────────┬────────────────────┘
-       │             │               │
-┌──────▼──────┐ ┌────▼─────┐ ┌──────▼───────────────────┐
-│ PostgreSQL  │ │  Redis   │ │       ML Engine           │
-│  (Async)   │ │  Cache   │ │  MoodClassifier           │
-│            │ │          │ │  ContextFusionEngine      │
-└────────────┘ └──────────┘ │  RankingEngine            │
-                             │  FeatureEngineering       │
-                             │  ModelRegistry            │
-                             └──────────┬────────────────┘
+└──────┬─────────────┬──────────────┬─────────────────────┘
+       │             │              │
+┌──────▼──────┐ ┌────▼─────┐ ┌──────▼─────────────────────┐
+│ PostgreSQL  │ │  Redis   │ │       ML Engine            │
+│  (Async)    │ │  Cache   │ │  MoodClassifier            │
+│             │ │          │ │  ContextFusionEngine       │
+└─────────────┘ └──────────┘ │  RankingEngine             │
+                             │  FeatureEngineering        │
+                             │  ModelRegistry             │
+                             └──────────┬─────────────────┘
                                         │
-                             ┌──────────▼────────────────┐
+                             ┌──────────▼─────────────────┐
                              │     Spotify Web API        │
                              │  Recommendations · Tracks  │
                              │  Audio Features · Playlists│
-                             └───────────────────────────┘
+                             └────────────────────────────┘
 ```
 
 ---
