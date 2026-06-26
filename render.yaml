@@ -3,7 +3,6 @@ services:
   - type: web
     name: moodsync-backend
     env: python
-    pythonVersion: "3.11"
     region: oregon
     rootDir: backend
     buildCommand: pip install -r requirements.txt
