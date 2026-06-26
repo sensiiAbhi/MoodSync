@@ -27,10 +27,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    # Database
+    # Database — accepts both postgresql:// and postgresql+asyncpg://
     DATABASE_URL: str = "postgresql+asyncpg://moodsync_user:moodsync_secret@localhost:5432/moodsync"
 
-    # Redis (optional — graceful fallback if not set)
+    # Redis (optional)
     REDIS_URL: Optional[str] = None
 
     # Spotify
@@ -40,6 +40,20 @@ class Settings(BaseSettings):
 
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+
+    @property
+    def async_database_url(self) -> str:
+        """
+        Render provides postgresql:// — SQLAlchemy asyncpg needs postgresql+asyncpg://
+        This auto-converts so both local and Render environments work.
+        """
+        url = self.DATABASE_URL
+        if url.startswith("postgres://"):
+            # Heroku/Render legacy format
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
 
     @property
     def allowed_origins_list(self) -> List[str]:
