@@ -81,7 +81,27 @@ class SpotifyClient:
             return self._mock_recommendations(spotify_params)
 
         data = resp.json()
-        return data.get("tracks", [])
+        tracks = data.get("tracks", [])
+        
+        # ── RETRY LOGIC ──
+        # If strict target parameters resulted in 0 tracks, retry with just seed_genres
+        if not tracks and "seed_genres" in params:
+            fallback_params = {
+                "seed_genres": params["seed_genres"],
+                "limit": params.get("limit", 50)
+            }
+            retry_resp = await self._http.get(
+                f"{SPOTIFY_API_BASE}/recommendations",
+                headers=headers,
+                params=fallback_params,
+            )
+            if retry_resp.status_code == 200:
+                tracks = retry_resp.json().get("tracks", [])
+                
+        if not tracks:
+            return self._mock_recommendations(spotify_params)
+            
+        return tracks
 
     # ─────────────────────── AUDIO FEATURES ───────────────────────
 

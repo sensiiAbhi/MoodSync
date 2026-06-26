@@ -37,7 +37,6 @@ export default function SettingsPage() {
     { id: 'profile', label: 'Profile', icon: '👤' },
     { id: 'preferences', label: 'Preferences', icon: '⚙️' },
     { id: 'privacy', label: 'Privacy & Data', icon: '🔒' },
-    { id: 'about', label: 'About', icon: 'ℹ️' },
   ]
 
   const AGE_RANGES = ['Under 18', '18-24', '25-34', '35-44', '45-54', '55+']
@@ -285,54 +284,6 @@ export default function SettingsPage() {
               </div>
             )}
 
-            {/* About Tab */}
-            {activeTab === 'about' && (
-              <div className="card">
-                <div style={{ textAlign: 'center', padding: '20px 0 32px' }}>
-                  <div style={{
-                    width: 72, height: 72, borderRadius: 20,
-                    background: 'linear-gradient(135deg, #7C3AED, #0EA5E9)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '2rem', margin: '0 auto 20px',
-                    boxShadow: '0 8px 24px rgba(124,58,237,0.35)',
-                  }}>
-                    🎵
-                  </div>
-                  <h2 style={{ marginBottom: 8 }}>MoodSync</h2>
-                  <p style={{ color: 'var(--primary-light)', fontWeight: 600, fontSize: '0.9rem', marginBottom: 8 }}>
-                    v1.0.0 — Context-Aware Psychological Music Recommendation Platform
-                  </p>
-                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', maxWidth: 480, margin: '0 auto 32px', lineHeight: 1.7 }}>
-                    A final-year Computer Science project that combines psychology, recommendation systems,
-                    behavioral analytics, and full-stack engineering to deliver music recommendations
-                    based on emotional state — not just listening history.
-                  </p>
-                </div>
-
-                <hr className="divider" />
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 28 }}>
-                  {[
-                    { label: 'Backend', value: 'FastAPI + SQLAlchemy' },
-                    { label: 'Database', value: 'PostgreSQL (Async)' },
-                    { label: 'ML Engine', value: 'Scikit-Learn + NumPy' },
-                    { label: 'Frontend', value: 'React 18 + Vite' },
-                    { label: 'Auth', value: 'JWT + Refresh Tokens' },
-                    { label: 'Music Data', value: 'Spotify Web API' },
-                    { label: 'Psychology Model', value: "Russell's Circumplex" },
-                    { label: 'Recommendation', value: 'ISO Principle + 3-Score Ranking' },
-                  ].map(item => (
-                    <div key={item.label} style={{
-                      padding: '12px 16px',
-                      background: 'rgba(255,255,255,0.03)', borderRadius: 8,
-                    }}>
-                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 2 }}>{item.label}</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </div>
