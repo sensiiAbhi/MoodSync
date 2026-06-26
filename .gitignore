@@ -1,0 +1,50 @@
+# Secrets — never commit
+.env
+backend/.env
+frontend/.env.local
+# Allow examples and production template (update VITE_API_URL in .env.production)
+!.env.example
+!backend/.env.example
+!frontend/.env.production
+
+# Python
+*.pyc
+__pycache__/
+.pytest_cache/
+
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.env.local
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite3
+
+# Coverage
+.coverage
+htmlcov/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Docker volumes
+postgres_data/
+
+# Alembic
+alembic/versions/*.py
+!alembic/versions/.gitkeep

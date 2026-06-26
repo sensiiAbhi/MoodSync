@@ -1,0 +1,47 @@
+services:
+  # ── MoodSync FastAPI Backend ──
+  - type: web
+    name: moodsync-backend
+    env: python
+    pythonVersion: "3.11"
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    plan: free
+
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: false
+      - key: SECRET_KEY
+        generateValue: true  # Render auto-generates a secure random value
+
+      # Database — Render will fill this after you create a PostgreSQL instance
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moodsync-db
+          property: connectionString
+
+      # Spotify — set these in Render Dashboard > Environment
+      - key: SPOTIFY_CLIENT_ID
+        value: ba1e79f4cbe84179b51a89719e0aa021
+      - key: SPOTIFY_CLIENT_SECRET
+        value: ecbfef53668644b5af035a2e9f45db63
+
+      # CORS — update with your Firebase URL after first deploy
+      - key: ALLOWED_ORIGINS
+        value: https://moodsync-app.web.app,https://moodsync-app.firebaseapp.com
+
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 15
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 30
+
+  # ── PostgreSQL Database ──
+databases:
+  - name: moodsync-db
+    databaseName: moodsync
+    user: moodsync_user
+    plan: free
