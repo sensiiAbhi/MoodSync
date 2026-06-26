@@ -7,9 +7,10 @@ import uuid
 class GenerateRecommendationRequest(BaseModel):
     assessment_id: Optional[uuid.UUID] = None
     activity_session_id: Optional[uuid.UUID] = None
-    activity_type: str
+    activity_type: Optional[str] = "unknown"
     desired_outcome: Optional[str] = None
     playlist_length: int = 25
+    conversational_answers: Optional[dict] = None
 
 
 class AudioFeaturesSummary(BaseModel):
