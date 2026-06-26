@@ -1,5 +1,5 @@
 # MoodSync Backend Dependencies
-# Python 3.11+
+# Python 3.11
 
 # ── Web Framework ──
 fastapi==0.115.0
@@ -12,7 +12,6 @@ asyncpg==0.29.0
 alembic==1.13.2
 
 # ── Auth & Security ──
-# passlib[bcrypt] bundles a compatible bcrypt — do NOT pin bcrypt separately
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.0.1
@@ -26,11 +25,12 @@ email-validator==2.2.0
 httpx==0.27.2
 
 # ── ML & Data Science ──
+# Use pre-built wheels only — no compilation needed on Render
 numpy==1.26.4
 scikit-learn==1.5.2
-scipy==1.14.1
+# scipy intentionally omitted — scikit-learn installs a compatible version automatically
 
-# ── Caching (optional — Redis not required) ──
+# ── Caching (optional) ──
 redis==5.0.8
 
 # ── Utilities ──
