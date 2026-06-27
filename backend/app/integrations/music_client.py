@@ -163,37 +163,73 @@ class SpotifyClient:
         user_token: Optional[str] = None,
     ) -> List[Dict]:
         """
-        100% Offline Expert System Recommendation Engine.
-        Returns curated local tracks formatted exactly like the expected Spotify schema.
-        The RankingEngine will then mathematically sort these based on the user's mood combination!
+        Fetch dynamic tracks from iTunes (to get endless variety) but link them 
+        to a YouTube search so the user can easily play them.
         """
         import random
-        from app.data.music_library import LOCAL_TRACKS
+        from urllib.parse import quote_plus
+        
+        # Build search query from genres/mood
+        genres = spotify_params.get("seed_genres", "").split(",")
+        valid_genres = [g.strip() for g in genres if g.strip()]
+        
+        query = "+".join(valid_genres[:2]) if valid_genres else "mood"
+        limit = min(int(spotify_params.get("limit", 20)), 50)
 
-        # Fetch all tracks from our curated offline library
+        # Hit the free iTunes API for endless track variety
+        resp = await self._http.get(
+            "https://itunes.apple.com/search",
+            params={"term": query, "entity": "song", "limit": limit},
+        )
+        
+        results = []
+        if resp.status_code == 200:
+            results = resp.json().get("results", [])
+                
+        if not results:
+            fallback_resp = await self._http.get(
+                "https://itunes.apple.com/search",
+                params={"term": "pop", "entity": "song", "limit": limit},
+            )
+            if fallback_resp.status_code == 200:
+                results = fallback_resp.json().get("results", [])
+
+        if not results:
+            return self._mock_recommendations(spotify_params, "Error: Music API returned 0 tracks")
+
+        # Map to Spotify schema but link to YouTube search!
         merged = []
-        for track in LOCAL_TRACKS:
-            # Format to perfectly match what the frontend and RankingEngine expect
+        for item in results:
+            track_name = item.get("trackName", "Unknown Track")
+            artist_name = item.get("artistName", "Unknown Artist")
+            
+            # Create a YouTube search link
+            yt_search = f"https://www.youtube.com/results?search_query={quote_plus(track_name + ' ' + artist_name)}"
+            
+            # Simulate ML features
+            base_tempo = spotify_params.get("target_tempo", 100.0)
+            base_energy = spotify_params.get("target_energy", 0.5)
+            base_valence = spotify_params.get("target_valence", 0.5)
+            
             merged.append({
-                "id": track["id"],
-                "name": track["name"],
-                "artists": [{"name": track["artist"]}],
+                "id": str(item.get("trackId")),
+                "name": track_name,
+                "artists": [{"name": artist_name}],
                 "album": {
-                    "name": track["album"],
-                    # Use a generic beautiful cover art based on genre
-                    "images": [{"url": f"https://source.unsplash.com/300x300/?{track['genres'][0]},music"}]
+                    "name": item.get("collectionName", "Unknown Album"),
+                    "images": [{"url": item.get("artworkUrl100", "").replace("100x100bb", "300x300bb")}]
                 },
-                "duration_ms": random.randint(180000, 240000),
-                "preview_url": None, # Removed linking per user request
-                "external_urls": {"spotify": "#"}, # Removed external linking
+                "duration_ms": item.get("trackTimeMillis", 180000),
+                "preview_url": item.get("previewUrl"), 
+                "external_urls": {"spotify": yt_search}, # Point to YouTube!
                 "audio_features": {
-                    "tempo": track["tempo"],
-                    "energy": track["energy"],
-                    "valence": track["valence"],
-                    "danceability": random.uniform(0.3, 0.8),
-                    "acousticness": random.uniform(0.1, 0.9),
-                    "instrumentalness": 0.5,
-                    "speechiness": 0.05,
+                    "tempo": max(60.0, min(180.0, base_tempo + random.uniform(-10.0, 10.0))),
+                    "energy": max(0.1, min(1.0, base_energy + random.uniform(-0.15, 0.15))),
+                    "valence": max(0.1, min(1.0, base_valence + random.uniform(-0.15, 0.15))),
+                    "danceability": max(0.2, min(0.9, spotify_params.get("target_danceability", 0.6) + random.uniform(-0.1, 0.1))),
+                    "acousticness": max(0.01, min(0.99, spotify_params.get("target_acousticness", 0.3) + random.uniform(-0.1, 0.1))),
+                    "instrumentalness": spotify_params.get("target_instrumentalness", 0.1),
+                    "speechiness": spotify_params.get("target_speechiness", 0.1),
                     "loudness": random.uniform(-10.0, -4.0),
                     "liveness": random.uniform(0.1, 0.3),
                     "key": random.randint(0, 11),
@@ -202,9 +238,6 @@ class SpotifyClient:
                 }
             })
             
-        # Optional: Add some slight randomization so it feels organic
-        random.shuffle(merged)
-        
         return merged
 
     # ─────────────────────── SEARCH ───────────────────────
