@@ -112,37 +112,44 @@ export default function AssessmentPage() {
       // Submit assessment
       const finalAnswers = { ...answers }
       
-      const payload = {
-        energy_level: finalAnswers.energy_level || 5,
-        stress_level: finalAnswers.stress_level || 5,
-        focus_level: finalAnswers.focus_level || 5,
-        motivation_level: finalAnswers.motivation_level || 5,
-        sleep_quality: finalAnswers.sleep_quality || 5,
-        mental_fatigue: finalAnswers.mental_fatigue || 5,
-        social_mood: finalAnswers.social_mood || 5,
-        assessment_type: 'full',
+      setLoading(true)
+      try {
+        const payload = {
+          energy_level: finalAnswers.energy_level || 5,
+          stress_level: finalAnswers.stress_level || 5,
+          focus_level: finalAnswers.focus_level || 5,
+          motivation_level: finalAnswers.motivation_level || 5,
+          sleep_quality: finalAnswers.sleep_quality || 5,
+          mental_fatigue: finalAnswers.mental_fatigue || 5,
+          social_mood: finalAnswers.social_mood || 5,
+          assessment_type: 'full',
+        }
+        
+        const res = await moodApi.submitAssessment(payload)
+        toast.success('Assessment complete! 🧠')
+        
+        // Auto-redirect to recommendations directly with all preferences!
+        navigate('/app/recommend', { 
+          state: { 
+            assessmentId: res.data.assessment_id, 
+            mood: res.data.primary_mood,
+            language: finalAnswers.language || 'Any',
+            vibe: finalAnswers.vibe || 'Any',
+            activity: finalAnswers.activity || 'relaxing',
+            outcome: finalAnswers.outcome || 'improve_mood'
+          } 
+        })
+      } catch (err) {
+        toast.error('Failed to save assessment')
+        console.error(err)
+      } finally {
+        setLoading(false)
       }
-      
-      const res = await moodApi.submitAssessment(payload)
-      toast.success('Assessment complete! 🧠')
-      
-      // Auto-redirect to recommendations directly with all preferences!
-      navigate('/app/recommend', { 
-        state: { 
-          assessmentId: res.data.assessment_id, 
-          mood: res.data.primary_mood,
-          language: finalAnswers.language || 'Any',
-          vibe: finalAnswers.vibe || 'Any',
-          activity: finalAnswers.activity || 'relaxing',
-          outcome: finalAnswers.outcome || 'improve_mood'
-        } 
-      })
-    } catch (err) {
-      toast.error('Failed to save assessment')
-      console.error(err)
-    } finally {
-      setLoading(false)
     }
+  }
+
+  const handleBack = () => {
+    if (currentQ > 0) setCurrentQ(currentQ - 1)
   }
 
   const currentValue = answers[currentQuestion?.id] ?? 5
