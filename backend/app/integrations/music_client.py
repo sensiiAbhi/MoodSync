@@ -39,30 +39,36 @@ class MusicClient:
         query = "+".join(valid_genres[:2]) if valid_genres else "mood"
         limit = min(int(music_params.get("limit", 20)), 50)
 
-        # Hit the free iTunes API (No auth needed!)
-        resp = await self._http.get(
-            "https://itunes.apple.com/search",
-            params={"term": query, "entity": "song", "limit": limit},
-        )
-        
-        if resp.status_code != 200:
-            err_msg = f"iTunes API Error {resp.status_code}: {resp.text}"
-            return self._mock_recommendations(music_params, err_msg)
-
-        data = resp.json()
-        results = data.get("results", [])
+        try:
+            # Hit the free iTunes API (No auth needed!) using a local context manager to prevent event loop issues
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.get(
+                    "https://itunes.apple.com/search",
+                    params={"term": query, "entity": "song", "limit": limit},
+                )
                 
-        if not results:
-            # Fallback to broader search
-            fallback_resp = await self._http.get(
-                "https://itunes.apple.com/search",
-                params={"term": "pop", "entity": "song", "limit": limit},
-            )
-            if fallback_resp.status_code == 200:
-                results = fallback_resp.json().get("results", [])
+                if resp.status_code != 200:
+                    err_msg = f"iTunes API Error {resp.status_code}: {resp.text}"
+                    return self._mock_recommendations(music_params, err_msg)
 
-        if not results:
-            return self._mock_recommendations(music_params, "Error: iTunes returned 0 tracks")
+                data = resp.json()
+                results = data.get("results", [])
+                        
+                if not results:
+                    # Fallback to broader search
+                    fallback_resp = await client.get(
+                        "https://itunes.apple.com/search",
+                        params={"term": "pop", "entity": "song", "limit": limit},
+                    )
+                    if fallback_resp.status_code == 200:
+                        results = fallback_resp.json().get("results", [])
+
+                if not results:
+                    return self._mock_recommendations(music_params, "Error: iTunes returned 0 tracks")
+                
+        except Exception as e:
+            # Render/Vercel outbound connections might fail or time out
+            return self._mock_recommendations(music_params, f"Connection Error: {str(e)}")
             
         # Map iTunes schema to Spotify schema
         tracks = []
