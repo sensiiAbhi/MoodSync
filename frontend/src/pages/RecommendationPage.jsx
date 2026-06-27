@@ -49,6 +49,7 @@ export default function RecommendationPage() {
 
   const assessmentId = location.state?.assessmentId
   const conversationalAnswers = location.state?.conversational_answers
+  const mood = location.state?.mood || recommendations?.primary_mood || ''
 
   const handleGenerate = async (autoAnswers = null) => {
     if (!autoAnswers && !activity) {

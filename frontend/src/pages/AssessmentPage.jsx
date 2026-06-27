@@ -5,63 +5,61 @@ import toast from 'react-hot-toast'
 
 const QUESTIONS = [
   {
-    id: 'feeling', label: 'Feeling & Goal',
-    desc: 'How are you feeling right now, and how do you want to feel in 30 minutes?',
-    emoji: '🧠',
+    id: 'feeling', label: 'The Emotional Landscape',
+    desc: 'How is your heart feeling right now, and where would you like the music to take you?',
+    emoji: '🌅',
     type: 'select',
     options: [
-      'Anxious ➔ Calm',
-      'Tired ➔ Energized',
-      'Distracted ➔ Focused',
-      'Stressed ➔ Relaxed',
-      'Sad ➔ Uplifted',
-      'Just want to vibe'
+      'Ground me. I\'m overwhelmed and need peace.',
+      'Uplift me. I\'m feeling heavy and need some light.',
+      'Energize me. I\'m drained and need momentum.',
+      'Focus me. I\'m scattered and need clarity.',
+      'Float with me. I just want to vibe with the current.'
     ]
   },
   {
-    id: 'activity', label: 'Activity',
-    desc: 'What exactly will you be doing while listening?',
-    emoji: '🎯',
+    id: 'activity', label: 'The Setting',
+    desc: 'What is the canvas of your current moment?',
+    emoji: '🗺️',
     type: 'select',
     options: [
-      'Deep Work / Studying',
-      'Working Out',
-      'Commuting',
-      'Relaxing / Doing Nothing',
-      'Doing Chores'
+      'Deep Dive: Immersed in focused work or study',
+      'Movement: Pushing limits and breaking a sweat',
+      'Journey: Commuting or traveling through the world',
+      'Sanctuary: Unwinding, resting, and doing absolutely nothing',
+      'Daily Rhythm: Chores and everyday routines'
     ]
   },
   {
-    id: 'attention', label: 'Attention Level',
-    desc: 'On a scale from "background hum" to "front-row concert", how much of your attention will the music have?',
-    emoji: '👁️',
+    id: 'attention', label: 'The Immersion',
+    desc: 'How deeply do you want to fall into the music?',
+    emoji: '🌊',
     type: 'slider',
-    lowLabel: 'Background Hum', highLabel: 'Front-Row Concert',
+    lowLabel: 'A gentle breeze in the background', highLabel: 'Let it consume my entire soul',
   },
   {
-    id: 'cravings', label: 'Cravings / Avoidances',
-    desc: 'Are there any specific instruments, eras, or genres you are craving right now (or absolutely want to avoid)?',
-    emoji: '🎸',
+    id: 'cravings', label: 'The Sonic Palette',
+    desc: 'What colors or textures are you craving in your soundscape right now?',
+    emoji: '🎨',
     type: 'multi',
     options: [
-      'Acoustic / Unplugged',
-      'Heavy Bass',
-      '80s Synth',
-      'Lo-Fi Beats',
-      'Classical / Orchestral',
-      'No Vocals (Instrumental only)',
-      'Upbeat Pop'
+      'Warm & Organic (Acoustic, Earthy)',
+      'Deep & Resonant (Heavy Bass, Powerful)',
+      'Ethereal & Dreamy (Ambient, Atmospheric)',
+      'Raw & Driving (Electric, Upbeat)',
+      'Pure & Wordless (Instrumentals only)',
+      'Nostalgic & Familiar (Throwbacks, Retro)'
     ]
   },
   {
-    id: 'familiarity', label: 'Familiarity',
-    desc: 'Do you want the comfort of familiar favorites, or are you looking to discover something completely new?',
-    emoji: '✨',
+    id: 'familiarity', label: 'The Journey',
+    desc: 'Are we walking familiar paths, or exploring the unknown?',
+    emoji: '🧭',
     type: 'select',
     options: [
-      'Comfort of familiar favorites',
-      'A mix of old and new',
-      'Discover something completely new'
+      'Comforting Embrace: Only songs I already know and love',
+      'Wandering: A perfect balance of old favorites and new discoveries',
+      'Uncharted Territory: I want to discover completely new horizons'
     ]
   },
 ]
@@ -128,7 +126,8 @@ export default function AssessmentPage() {
     navigate('/app/recommend', {
       state: { 
         assessmentId: result.assessment_id,
-        conversational_answers: answers
+        conversational_answers: answers,
+        mood: result.primary_mood
       }
     })
   }
