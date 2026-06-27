@@ -3,7 +3,7 @@
 > **Context-Aware Psychological Music Recommendation Platform**  
 > Final-Year Computer Science Project — Production-Grade Implementation
 
-[![CI](https://github.com/your-username/moodsync/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/moodsync/actions)
+[![CI](https://github.com/sensiiAbhi/moodsync/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/moodsync/actions)
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.115-green)
 ![React](https://img.shields.io/badge/React-18-61DAFB)
