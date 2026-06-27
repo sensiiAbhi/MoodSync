@@ -14,6 +14,7 @@ class MoodAssessmentRequest(BaseModel):
     mental_fatigue: int
     social_mood: int
     assessment_type: str = "full"
+    language_preference: str = "English"
 
     @field_validator(
         "energy_level", "stress_level", "focus_level",

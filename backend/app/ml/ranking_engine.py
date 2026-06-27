@@ -130,7 +130,7 @@ class RankingEngine:
         for i, track in enumerate(scored):
             track.rank = i + 1
 
-        return scored[:30]  # Return top 30
+        return scored[:25]  # Return top 25 tracks based on exact combinations
 
     def _extract_features(self, track: Dict) -> Optional[Dict[str, float]]:
         """Extract audio feature vector from Spotify track+features dict."""

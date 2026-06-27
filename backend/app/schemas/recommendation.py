@@ -9,9 +9,8 @@ class GenerateRecommendationRequest(BaseModel):
     activity_session_id: Optional[uuid.UUID] = None
     activity_type: str
     desired_outcome: Optional[str] = None
-    playlist_length: int = 10
-    preferred_language: Optional[str] = "Any"
-    preferred_vibe: Optional[str] = "Any"
+    playlist_length: int = 25
+    language_preference: str = "English"
 
 
 class AudioFeaturesSummary(BaseModel):

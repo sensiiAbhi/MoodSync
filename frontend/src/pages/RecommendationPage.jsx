@@ -49,31 +49,21 @@ export default function RecommendationPage() {
 
   const assessmentId = location.state?.assessmentId
   const mood = location.state?.mood
-  const language = location.state?.language || 'Any'
-  const vibe = location.state?.vibe || 'Any'
-  const stateActivity = location.state?.activity
-  const stateOutcome = location.state?.outcome
+  const language = location.state?.language || 'English'
 
-  useEffect(() => {
-    if (stateActivity && step === 'select') {
-      setActivity(stateActivity)
-      setOutcome(stateOutcome || '')
-      // We need to defer handleGenerate slightly to ensure state is set,
-      // but since handleGenerate uses state, we can just pass params directly
-      handleGenerateParams(stateActivity, stateOutcome)
+  const handleGenerate = async () => {
+    if (!activity) {
+      toast.error('Please select an activity')
+      return
     }
-  }, [stateActivity])
-
-  const handleGenerateParams = async (act, out) => {
     setStep('loading')
     try {
       const res = await recommendationsApi.generate({
         assessment_id: assessmentId,
-        activity_type: act,
-        desired_outcome: out || undefined,
-        playlist_length: 10,
-        preferred_language: language,
-        preferred_vibe: vibe
+        activity_type: activity,
+        desired_outcome: outcome || undefined,
+        playlist_length: 25,
+        language_preference: language,
       })
       setRecommendations(res.data)
       setStep('results')
@@ -83,8 +73,6 @@ export default function RecommendationPage() {
       setStep('select')
     }
   }
-
-  const handleGenerate = () => handleGenerateParams(activity, outcome)
 
   const handleRating = async (stars) => {
     setRating(stars)

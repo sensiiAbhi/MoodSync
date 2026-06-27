@@ -163,119 +163,61 @@ class SpotifyClient:
         user_token: Optional[str] = None,
     ) -> List[Dict]:
         """
-        Fetch dynamic tracks from iTunes (to get endless variety) but link them 
-        to a YouTube search so the user can easily play them.
+        Fetch tracks from local songs_db.json, filter by language,
+        and link them to a YouTube search so the user can easily play them.
         """
-        import random
+        import json
+        import os
         from urllib.parse import quote_plus
         
-        # Build search query from genres/mood
-        genres = spotify_params.get("seed_genres", "").split(",")
-        valid_genres = [g.strip() for g in genres if g.strip()]
-        
-        query = "+".join(valid_genres[:2]) if valid_genres else "mood"
-        limit = min(int(spotify_params.get("limit", 20)), 50)
-        
-        results = []
-        
-        # 1. Attempt Gemini AI Generation first
-        if settings.GEMINI_API_KEY:
-            try:
-                import google.generativeai as genai
-                import json
-                genai.configure(api_key=settings.GEMINI_API_KEY)
-                
-                language = spotify_params.get("preferred_language", "Any")
-                vibe = spotify_params.get("preferred_vibe", "Any")
-                
-                prompt = (
-                    f"Generate a playlist of EXACTLY {limit} real, highly popular songs. "
-                    f"Language requirement: {language}. "
-                    f"Vibe/Genre requirement: {vibe}. "
-                    "Output ONLY a raw JSON array of objects, with no markdown formatting or backticks. "
-                    "Each object must have exactly two string keys: 'trackName' and 'artistName'."
-                )
-                model = genai.GenerativeModel('gemini-1.5-flash')
-                response = model.generate_content(prompt)
-                
-                raw_text = response.text.strip()
-                if raw_text.startswith("```json"):
-                    raw_text = raw_text[7:-3]
-                elif raw_text.startswith("```"):
-                    raw_text = raw_text[3:-3]
-                
-                parsed = json.loads(raw_text.strip())
-                for t in parsed:
-                    results.append({
-                        "trackId": f"gemini_{abs(hash(t['trackName']))}",
-                        "trackName": t["trackName"],
-                        "artistName": t["artistName"],
-                        "collectionName": "AI Recommended",
-                        "artworkUrl100": f"https://picsum.photos/seed/{abs(hash(t['trackName']))%1000}/300/300",
-                        "trackTimeMillis": 180000 + (abs(hash(t['artistName'])) % 60000),
-                    })
-            except Exception as e:
-                print(f"Gemini generation failed: {e}")
-                results = []
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "songs_db.json")
+        try:
+            with open(db_path, "r") as f:
+                local_tracks = json.load(f)
+        except Exception as e:
+            print(f"Error loading songs_db.json: {e}")
+            local_tracks = []
 
-        # 2. Hit the free iTunes API for endless track variety (Fallback or if no Gemini)
-        if not results:
-            resp = await self._http.get(
-                "https://itunes.apple.com/search",
-                params={"term": query, "entity": "song", "limit": limit},
-            )
-            if resp.status_code == 200:
-                results = resp.json().get("results", [])
-
-                
-        if not results:
-            fallback_resp = await self._http.get(
-                "https://itunes.apple.com/search",
-                params={"term": "pop", "entity": "song", "limit": limit},
-            )
-            if fallback_resp.status_code == 200:
-                results = fallback_resp.json().get("results", [])
-
-        if not results:
-            return self._mock_recommendations(spotify_params, "Error: Music API returned 0 tracks")
+        language_pref = spotify_params.get("language_preference", "Any")
+        
+        # Filter tracks by language if not 'Any'
+        if language_pref != "Any":
+            filtered_tracks = [t for t in local_tracks if t.get("language") == language_pref]
+        else:
+            filtered_tracks = local_tracks
 
         # Map to Spotify schema but link to YouTube search!
         merged = []
-        for item in results:
-            track_name = item.get("trackName", "Unknown Track")
-            artist_name = item.get("artistName", "Unknown Artist")
+        for item in filtered_tracks:
+            track_name = item.get("name", "Unknown Track")
+            artist_name = item.get("artist", "Unknown Artist")
             
             # Create a YouTube search link
             yt_search = f"https://www.youtube.com/results?search_query={quote_plus(track_name + ' ' + artist_name)}"
             
-            # Simulate ML features
-            base_tempo = spotify_params.get("target_tempo", 100.0)
-            base_energy = spotify_params.get("target_energy", 0.5)
-            base_valence = spotify_params.get("target_valence", 0.5)
-            
             merged.append({
-                "id": str(item.get("trackId")),
+                "id": str(item.get("id")),
                 "name": track_name,
                 "artists": [{"name": artist_name}],
                 "album": {
-                    "name": item.get("collectionName", "Unknown Album"),
-                    "images": [{"url": item.get("artworkUrl100", "").replace("100x100bb", "300x300bb")}]
+                    "name": item.get("album", "Unknown Album"),
+                    "images": [{"url": "https://placehold.co/300x300/1e1e24/7c3aed?text=Album+Art"}]
                 },
-                "duration_ms": item.get("trackTimeMillis", 180000),
-                "preview_url": item.get("previewUrl"), 
+                "duration_ms": 180000,
+                "preview_url": None, 
                 "external_urls": {"spotify": yt_search}, # Point to YouTube!
                 "audio_features": {
-                    "tempo": max(60.0, min(180.0, base_tempo + random.uniform(-10.0, 10.0))),
-                    "energy": max(0.1, min(1.0, base_energy + random.uniform(-0.15, 0.15))),
-                    "valence": max(0.1, min(1.0, base_valence + random.uniform(-0.15, 0.15))),
-                    "danceability": max(0.2, min(0.9, spotify_params.get("target_danceability", 0.6) + random.uniform(-0.1, 0.1))),
-                    "acousticness": max(0.01, min(0.99, spotify_params.get("target_acousticness", 0.3) + random.uniform(-0.1, 0.1))),
-                    "instrumentalness": spotify_params.get("target_instrumentalness", 0.1),
-                    "speechiness": spotify_params.get("target_speechiness", 0.1),
-                    "loudness": random.uniform(-10.0, -4.0),
-                    "liveness": random.uniform(0.1, 0.3),
-                    "key": random.randint(0, 11),
-                    "mode": random.choice([0, 1]),
+                    "tempo": item.get("tempo", 120.0),
+                    "energy": item.get("energy", 0.5),
+                    "valence": item.get("valence", 0.5),
+                    "danceability": item.get("danceability", 0.5),
+                    "acousticness": item.get("acousticness", 0.5),
+                    "instrumentalness": item.get("instrumentalness", 0.1),
+                    "speechiness": item.get("speechiness", 0.1),
+                    "loudness": -6.0,
+                    "liveness": item.get("liveness", 0.2),
+                    "key": 0,
+                    "mode": 1,
                     "time_signature": 4,
                 }
             })
