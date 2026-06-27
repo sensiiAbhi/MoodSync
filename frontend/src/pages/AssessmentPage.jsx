@@ -46,6 +46,30 @@ const QUESTIONS = [
     emoji: '💬',
     lowLabel: 'Want to be alone', highLabel: 'Very sociable',
   },
+  {
+    id: 'language', label: 'Preferred Language', type: 'choice',
+    desc: 'What language of music are you looking for?',
+    emoji: '🌍',
+    options: ['English', 'Hindi', 'Japanese', 'Korean', 'Spanish', 'Russian', 'Any'],
+  },
+  {
+    id: 'vibe', label: 'Music Vibe / Genre', type: 'choice',
+    desc: 'Any specific style you want?',
+    emoji: '🎸',
+    options: ['Pop', 'Rock', 'Anime', 'Phonk', 'Lofi', 'Classical', 'Hip-Hop', 'Any'],
+  },
+  {
+    id: 'activity', label: 'Current Activity', type: 'choice',
+    desc: 'What are you doing right now?',
+    emoji: '🎧',
+    options: ['studying', 'coding', 'reading', 'deep_work', 'creative_thinking', 'gym_workout', 'running', 'yoga', 'meditation', 'sleeping', 'relaxing', 'driving'],
+  },
+  {
+    id: 'outcome', label: 'Desired Outcome', type: 'choice',
+    desc: 'What do you want to achieve?',
+    emoji: '🎯',
+    options: ['improve_focus', 'reduce_stress', 'boost_energy', 'improve_mood', 'sleep_better', 'stay_motivated', 'feel_calm', 'feel_energized'],
+  }
 ]
 
 const MOOD_COLORS = {
@@ -73,8 +97,13 @@ export default function AssessmentPage() {
   }
 
   const handleNext = async () => {
-    if (!(currentQuestion.id in answers)) {
+    // Set default value for sliders if not touched
+    if (!(currentQuestion.id in answers) && !currentQuestion.type) {
       setAnswers(prev => ({ ...prev, [currentQuestion.id]: 5 }))
+    }
+    // Set default for choice if not touched
+    if (!(currentQuestion.id in answers) && currentQuestion.type === 'choice') {
+      setAnswers(prev => ({ ...prev, [currentQuestion.id]: currentQuestion.options[0] }))
     }
 
     if (currentQ < QUESTIONS.length - 1) {
@@ -82,33 +111,32 @@ export default function AssessmentPage() {
     } else {
       // Submit assessment
       const finalAnswers = { ...answers }
-      if (!(currentQuestion.id in finalAnswers)) {
-        finalAnswers[currentQuestion.id] = 5
-      }
-      await submitAssessment(finalAnswers)
-    }
-  }
-
-  const handleBack = () => {
-    if (currentQ > 0) setCurrentQ(currentQ - 1)
-  }
-
-  const submitAssessment = async (data) => {
-    setLoading(true)
-    try {
+      
       const payload = {
-        energy_level: data.energy_level || 5,
-        stress_level: data.stress_level || 5,
-        focus_level: data.focus_level || 5,
-        motivation_level: data.motivation_level || 5,
-        sleep_quality: data.sleep_quality || 5,
-        mental_fatigue: data.mental_fatigue || 5,
-        social_mood: data.social_mood || 5,
+        energy_level: finalAnswers.energy_level || 5,
+        stress_level: finalAnswers.stress_level || 5,
+        focus_level: finalAnswers.focus_level || 5,
+        motivation_level: finalAnswers.motivation_level || 5,
+        sleep_quality: finalAnswers.sleep_quality || 5,
+        mental_fatigue: finalAnswers.mental_fatigue || 5,
+        social_mood: finalAnswers.social_mood || 5,
         assessment_type: 'full',
       }
+      
       const res = await moodApi.submitAssessment(payload)
-      setResult(res.data)
       toast.success('Assessment complete! 🧠')
+      
+      // Auto-redirect to recommendations directly with all preferences!
+      navigate('/app/recommend', { 
+        state: { 
+          assessmentId: res.data.assessment_id, 
+          mood: res.data.primary_mood,
+          language: finalAnswers.language || 'Any',
+          vibe: finalAnswers.vibe || 'Any',
+          activity: finalAnswers.activity || 'relaxing',
+          outcome: finalAnswers.outcome || 'improve_mood'
+        } 
+      })
     } catch (err) {
       toast.error('Failed to save assessment')
       console.error(err)
@@ -119,89 +147,7 @@ export default function AssessmentPage() {
 
   const currentValue = answers[currentQuestion?.id] ?? 5
 
-  // ── Result Screen ──
-  if (result) {
-    const moodColor = MOOD_COLORS[result.primary_mood] || 'var(--primary)'
-    const moodEmoji = MOOD_EMOJI[result.primary_mood] || '🎵'
-
-    return (
-      <div className="page-layout">
-        <div className="main-content" style={{ maxWidth: 680, margin: '0 auto' }}>
-          <div className="card animate-fade-in" style={{
-            textAlign: 'center', padding: 48,
-            border: `1px solid ${moodColor}30`,
-          }}>
-            {/* Mood Badge */}
-            <div style={{
-              width: 96, height: 96, borderRadius: '50%',
-              background: `${moodColor}20`, border: `2px solid ${moodColor}40`,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '3rem', margin: '0 auto 24px',
-              boxShadow: `0 0 30px ${moodColor}30`,
-            }}>
-              {moodEmoji}
-            </div>
-
-            <div style={{
-              display: 'inline-block', background: `${moodColor}20`,
-              border: `1px solid ${moodColor}40`, color: moodColor,
-              padding: '6px 20px', borderRadius: 99, fontWeight: 700,
-              fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.1em',
-              marginBottom: 20,
-            }}>
-              {result.primary_mood?.replace('_', ' ')}
-            </div>
-
-            <h2 style={{ marginBottom: 12 }}>Assessment Complete</h2>
-            <p style={{ color: 'var(--text-secondary)', marginBottom: 32, lineHeight: 1.7 }}>
-              {result.mood_description}
-            </p>
-
-            {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 32 }}>
-              {[
-                { label: 'Valence', value: ((result.mood_valence + 1) / 2 * 100).toFixed(0) + '%', desc: 'Positivity' },
-                { label: 'Arousal', value: (result.mood_arousal * 100).toFixed(0) + '%', desc: 'Energy State' },
-                { label: 'Wellbeing', value: result.wellbeing_score?.toFixed(0) + '/100', desc: 'Score' },
-              ].map(stat => (
-                <div key={stat.label} style={{
-                  background: 'rgba(255,255,255,0.04)', borderRadius: 12,
-                  padding: '16px 12px', border: '1px solid rgba(255,255,255,0.06)',
-                }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: moodColor }}>{stat.value}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{stat.desc}</div>
-                </div>
-              ))}
-            </div>
-
-            <p style={{
-              fontSize: '0.9rem', color: 'var(--text-secondary)',
-              background: 'rgba(255,255,255,0.03)', borderRadius: 12,
-              padding: '14px 20px', marginBottom: 32,
-              border: '1px solid rgba(255,255,255,0.06)',
-            }}>
-              💡 {result.recommended_next_step}
-            </p>
-
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <button
-                className="btn btn-primary btn-lg"
-                onClick={() => navigate('/app/recommend', { state: { assessmentId: result.assessment_id, mood: result.primary_mood } })}
-              >
-                ✦ Get Music for My Mood
-              </button>
-              <button
-                className="btn btn-ghost"
-                onClick={() => navigate('/app/dashboard')}
-              >
-                Dashboard
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Intermediate Result Screen removed for seamless flow
 
   // ── Assessment Questions ──
   return (
@@ -231,55 +177,83 @@ export default function AssessmentPage() {
             {currentQuestion.desc}
           </p>
 
-          {/* Score Display */}
-          <div style={{
-            fontSize: '4rem', fontWeight: 800,
-            fontFamily: 'var(--font-heading)',
-            background: 'var(--gradient-primary)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-            marginBottom: 24, lineHeight: 1,
-          }}>
-            {currentValue}
-          </div>
+          {/* Question Input Logic */}
+          {currentQuestion.type === 'choice' ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, justifyContent: 'center', marginBottom: 40 }}>
+              {currentQuestion.options.map(opt => {
+                const isSelected = (answers[currentQuestion.id] || currentQuestion.options[0]) === opt;
+                return (
+                  <button
+                    key={opt}
+                    onClick={() => setAnswers(prev => ({ ...prev, [currentQuestion.id]: opt }))}
+                    style={{
+                      padding: '12px 24px', borderRadius: 99,
+                      background: isSelected ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                      border: isSelected ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                      color: isSelected ? 'white' : 'var(--text-primary)',
+                      fontSize: '1rem', fontWeight: 600, cursor: 'pointer',
+                      boxShadow: isSelected ? '0 0 16px rgba(124,58,237,0.4)' : 'none',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {opt}
+                  </button>
+                )
+              })}
+            </div>
+          ) : (
+            <>
+              {/* Score Display */}
+              <div style={{
+                fontSize: '4rem', fontWeight: 800,
+                fontFamily: 'var(--font-heading)',
+                background: 'var(--gradient-primary)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                marginBottom: 24, lineHeight: 1,
+              }}>
+                {currentValue}
+              </div>
 
-          {/* Slider */}
-          <div style={{ padding: '0 8px', marginBottom: 16 }}>
-            <input
-              type="range"
-              min={1} max={10} step={1}
-              value={currentValue}
-              onChange={e => handleSliderChange(e.target.value)}
-              style={{
-                background: `linear-gradient(90deg, var(--primary) ${(currentValue - 1) / 9 * 100}%, rgba(255,255,255,0.1) ${(currentValue - 1) / 9 * 100}%)`,
-              }}
-            />
-          </div>
+              {/* Slider */}
+              <div style={{ padding: '0 8px', marginBottom: 16 }}>
+                <input
+                  type="range"
+                  min={1} max={10} step={1}
+                  value={currentValue}
+                  onChange={e => handleSliderChange(e.target.value)}
+                  style={{
+                    background: `linear-gradient(90deg, var(--primary) ${(currentValue - 1) / 9 * 100}%, rgba(255,255,255,0.1) ${(currentValue - 1) / 9 * 100}%)`,
+                  }}
+                />
+              </div>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 40 }}>
-            <span>1 · {currentQuestion.lowLabel}</span>
-            <span>{currentQuestion.highLabel} · 10</span>
-          </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: 40 }}>
+                <span>1 · {currentQuestion.lowLabel}</span>
+                <span>{currentQuestion.highLabel} · 10</span>
+              </div>
 
-          {/* Scale Reference */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 40 }}>
-            {[1,2,3,4,5,6,7,8,9,10].map(n => (
-              <button
-                key={n}
-                onClick={() => handleSliderChange(n)}
-                style={{
-                  width: 32, height: 32, borderRadius: '50%',
-                  background: n === currentValue ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                  border: n === currentValue ? 'none' : '1px solid rgba(255,255,255,0.08)',
-                  color: n === currentValue ? 'white' : 'var(--text-muted)',
-                  fontSize: '0.75rem', fontWeight: 600,
-                  cursor: 'pointer', transition: 'all 0.15s ease',
-                  boxShadow: n === currentValue ? '0 0 12px rgba(124,58,237,0.5)' : 'none',
-                }}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
+              {/* Scale Reference */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 4, marginBottom: 40 }}>
+                {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                  <button
+                    key={n}
+                    onClick={() => handleSliderChange(n)}
+                    style={{
+                      width: 32, height: 32, borderRadius: '50%',
+                      background: n === currentValue ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
+                      border: n === currentValue ? 'none' : '1px solid rgba(255,255,255,0.08)',
+                      color: n === currentValue ? 'white' : 'var(--text-muted)',
+                      fontSize: '0.75rem', fontWeight: 600,
+                      cursor: 'pointer', transition: 'all 0.15s ease',
+                      boxShadow: n === currentValue ? '0 0 12px rgba(124,58,237,0.5)' : 'none',
+                    }}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
 
           {/* Navigation */}
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>

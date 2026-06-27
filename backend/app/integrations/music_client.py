@@ -175,16 +175,58 @@ class SpotifyClient:
         
         query = "+".join(valid_genres[:2]) if valid_genres else "mood"
         limit = min(int(spotify_params.get("limit", 20)), 50)
-
-        # Hit the free iTunes API for endless track variety
-        resp = await self._http.get(
-            "https://itunes.apple.com/search",
-            params={"term": query, "entity": "song", "limit": limit},
-        )
         
         results = []
-        if resp.status_code == 200:
-            results = resp.json().get("results", [])
+        
+        # 1. Attempt Gemini AI Generation first
+        if settings.GEMINI_API_KEY:
+            try:
+                import google.generativeai as genai
+                import json
+                genai.configure(api_key=settings.GEMINI_API_KEY)
+                
+                language = spotify_params.get("preferred_language", "Any")
+                vibe = spotify_params.get("preferred_vibe", "Any")
+                
+                prompt = (
+                    f"Generate a playlist of EXACTLY {limit} real, highly popular songs. "
+                    f"Language requirement: {language}. "
+                    f"Vibe/Genre requirement: {vibe}. "
+                    "Output ONLY a raw JSON array of objects, with no markdown formatting or backticks. "
+                    "Each object must have exactly two string keys: 'trackName' and 'artistName'."
+                )
+                model = genai.GenerativeModel('gemini-1.5-flash')
+                response = model.generate_content(prompt)
+                
+                raw_text = response.text.strip()
+                if raw_text.startswith("```json"):
+                    raw_text = raw_text[7:-3]
+                elif raw_text.startswith("```"):
+                    raw_text = raw_text[3:-3]
+                
+                parsed = json.loads(raw_text.strip())
+                for t in parsed:
+                    results.append({
+                        "trackId": f"gemini_{abs(hash(t['trackName']))}",
+                        "trackName": t["trackName"],
+                        "artistName": t["artistName"],
+                        "collectionName": "AI Recommended",
+                        "artworkUrl100": f"https://picsum.photos/seed/{abs(hash(t['trackName']))%1000}/300/300",
+                        "trackTimeMillis": 180000 + (abs(hash(t['artistName'])) % 60000),
+                    })
+            except Exception as e:
+                print(f"Gemini generation failed: {e}")
+                results = []
+
+        # 2. Hit the free iTunes API for endless track variety (Fallback or if no Gemini)
+        if not results:
+            resp = await self._http.get(
+                "https://itunes.apple.com/search",
+                params={"term": query, "entity": "song", "limit": limit},
+            )
+            if resp.status_code == 200:
+                results = resp.json().get("results", [])
+
                 
         if not results:
             fallback_resp = await self._http.get(

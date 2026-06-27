@@ -69,7 +69,9 @@ async def generate_recommendations(
 
     # Get Spotify recommendations
     spotify_params = context_fusion_engine.profile_to_spotify_params(music_profile)
-    spotify_params["limit"] = 50
+    spotify_params["limit"] = payload.playlist_length
+    spotify_params["preferred_language"] = payload.preferred_language
+    spotify_params["preferred_vibe"] = payload.preferred_vibe
 
     candidates = await spotify_client.get_recommendations_with_features(spotify_params)
 
