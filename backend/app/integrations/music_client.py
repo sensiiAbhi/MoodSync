@@ -163,48 +163,48 @@ class SpotifyClient:
         user_token: Optional[str] = None,
     ) -> List[Dict]:
         """
-        Get tracks via Search and simulate audio_features to power the Ranking Engine
-        and UI radar charts.
+        100% Offline Expert System Recommendation Engine.
+        Returns curated local tracks formatted exactly like the expected Spotify schema.
+        The RankingEngine will then mathematically sort these based on the user's mood combination!
         """
-        tracks = await self.get_recommendations(spotify_params, user_token)
-
-        if not tracks:
-            return []
-
         import random
+        from app.data.music_library import LOCAL_TRACKS
 
+        # Fetch all tracks from our curated offline library
         merged = []
-        for track in tracks:
-            tid = track.get("id", "")
+        for track in LOCAL_TRACKS:
+            # Format to perfectly match what the frontend and RankingEngine expect
+            merged.append({
+                "id": track["id"],
+                "name": track["name"],
+                "artists": [{"name": track["artist"]}],
+                "album": {
+                    "name": track["album"],
+                    # Use a generic beautiful cover art based on genre
+                    "images": [{"url": f"https://source.unsplash.com/300x300/?{track['genres'][0]},music"}]
+                },
+                "duration_ms": random.randint(180000, 240000),
+                "preview_url": None, # Removed linking per user request
+                "external_urls": {"spotify": "#"}, # Removed external linking
+                "audio_features": {
+                    "tempo": track["tempo"],
+                    "energy": track["energy"],
+                    "valence": track["valence"],
+                    "danceability": random.uniform(0.3, 0.8),
+                    "acousticness": random.uniform(0.1, 0.9),
+                    "instrumentalness": 0.5,
+                    "speechiness": 0.05,
+                    "loudness": random.uniform(-10.0, -4.0),
+                    "liveness": random.uniform(0.1, 0.3),
+                    "key": random.randint(0, 11),
+                    "mode": random.choice([0, 1]),
+                    "time_signature": 4,
+                }
+            })
             
-            if str(tid).startswith("mock_") and "audio_features" in track:
-                merged.append(track)
-                continue
-                
-            # Simulate features based on the ML engine's requested targets
-            # This ensures the Ranking Engine and UI charts continue to work perfectly
-            base_tempo = spotify_params.get("target_tempo", 100.0)
-            base_energy = spotify_params.get("target_energy", 0.5)
-            base_valence = spotify_params.get("target_valence", 0.5)
-            
-            simulated_feats = {
-                "tempo": max(60.0, min(180.0, base_tempo + random.uniform(-10.0, 10.0))),
-                "energy": max(0.1, min(1.0, base_energy + random.uniform(-0.15, 0.15))),
-                "valence": max(0.1, min(1.0, base_valence + random.uniform(-0.15, 0.15))),
-                "danceability": max(0.2, min(0.9, spotify_params.get("target_danceability", 0.6) + random.uniform(-0.1, 0.1))),
-                "acousticness": max(0.01, min(0.99, spotify_params.get("target_acousticness", 0.3) + random.uniform(-0.1, 0.1))),
-                "instrumentalness": spotify_params.get("target_instrumentalness", 0.1),
-                "speechiness": spotify_params.get("target_speechiness", 0.1),
-                "loudness": random.uniform(-10.0, -4.0),
-                "liveness": random.uniform(0.1, 0.3),
-                "key": random.randint(0, 11),
-                "mode": random.choice([0, 1]),
-                "time_signature": 4,
-            }
-            
-            track["audio_features"] = simulated_feats
-            merged.append(track)
-
+        # Optional: Add some slight randomization so it feels organic
+        random.shuffle(merged)
+        
         return merged
 
     # ─────────────────────── SEARCH ───────────────────────
