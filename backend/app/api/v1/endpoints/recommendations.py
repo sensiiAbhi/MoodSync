@@ -93,6 +93,12 @@ async def generate_recommendations(
             c["instrumentalness"] = random.uniform(0.01, 0.5)
             c["speechiness"] = random.uniform(0.01, 0.2)
             c["album_art_url"] = c.get("album", {}).get("images", [{}])[0].get("url", None)
+            
+            c["spotify_id"] = c.get("id")
+            c["title"] = c.get("name")
+            c["artist"] = ", ".join(a.get("name", "") for a in c.get("artists", []))
+            c["spotify_url"] = c.get("external_urls", {}).get("spotify", "")
+            
             class TrackWrapper:
                 def __init__(self, **kwargs):
                     self.__dict__.update(kwargs)
