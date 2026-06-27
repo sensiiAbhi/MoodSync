@@ -21,7 +21,7 @@ from app.schemas.recommendation import (
 from app.ml.mood_classifier import mood_classifier
 from app.ml.context_fusion import context_fusion_engine
 from app.ml.ranking_engine import ranking_engine
-from app.integrations.spotify_client import spotify_client
+from app.integrations.music_client import spotify_client
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
