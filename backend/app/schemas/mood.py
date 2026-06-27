@@ -5,6 +5,10 @@ import uuid
 from datetime import datetime
 
 
+class ConversationalAssessmentRequest(BaseModel):
+    conversational_answers: dict
+    assessment_type: str = "conversational"
+
 class MoodAssessmentRequest(BaseModel):
     energy_level: int
     stress_level: int

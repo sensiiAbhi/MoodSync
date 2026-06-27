@@ -11,6 +11,7 @@ export const authApi = {
 
 export const moodApi = {
   submitAssessment: (data) => client.post('/mood/assess', data),
+  submitConversationalAssessment: (data) => client.post('/mood/assess/conversational', data),
   getCurrent: () => client.get('/mood/current'),
   getHistory: (limit = 30) => client.get(`/mood/assessments?limit=${limit}`),
   getTrends: (days = 30) => client.get(`/mood/trends?days=${days}`),

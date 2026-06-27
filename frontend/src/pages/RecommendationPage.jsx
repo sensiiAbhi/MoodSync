@@ -58,6 +58,7 @@ export default function RecommendationPage() {
     setStep('loading')
     try {
       const payload = autoAnswers ? {
+        assessment_id: assessmentId,
         activity_type: 'custom',
         playlist_length: 15,
         conversational_answers: autoAnswers

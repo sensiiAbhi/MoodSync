@@ -104,9 +104,19 @@ export default function AssessmentPage() {
     if (currentQ < QUESTIONS.length - 1) {
       setCurrentQ(currentQ + 1)
     } else {
-      // Submit directly to recommendations page
-      const finalAnswers = { ...answers }
-      navigate('/app/recommend', { state: { conversational_answers: finalAnswers } })
+      // Final Question -> Analyze via Gemini ML Extraction
+      setLoading(true)
+      try {
+        const finalAnswers = { ...answers }
+        const res = await moodApi.submitConversationalAssessment({
+          conversational_answers: finalAnswers
+        })
+        setResult(res.data)
+      } catch (err) {
+        toast.error('Failed to analyze mood. Please try again.')
+      } finally {
+        setLoading(false)
+      }
     }
   }
 
@@ -114,13 +124,100 @@ export default function AssessmentPage() {
     if (currentQ > 0) setCurrentQ(currentQ - 1)
   }
 
+  const handleGetMusic = () => {
+    navigate('/app/recommend', {
+      state: { 
+        assessmentId: result.assessment_id,
+        conversational_answers: answers
+      }
+    })
+  }
+
   const currentValue = answers[currentQuestion?.id]
 
-  // Removed Result Screen completely, now skips straight to RecommendationPage
-
-
   // ── Result Screen ──
+  if (result) {
+    const isPositive = result.mood_valence >= 0
+    const isHighEnergy = result.mood_arousal >= 0.5
+    
+    return (
+      <div className="page-layout">
+        <div className="main-content" style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
+          
+          <div style={{ marginBottom: 40 }}>
+            <h1 style={{ marginBottom: 8 }}>Mood Profile Generated</h1>
+            <p style={{ color: 'var(--text-secondary)' }}>Based on your answers, here is your current state</p>
+          </div>
 
+          <div className="card" style={{ padding: 48, marginBottom: 32 }}>
+            <div style={{ 
+              display: 'inline-block',
+              padding: '16px 32px',
+              borderRadius: 99,
+              background: 'var(--surface)',
+              border: `1px solid ${isPositive ? (isHighEnergy ? 'var(--warning)' : 'var(--success)') : 'var(--primary)'}`,
+              marginBottom: 32
+            }}>
+              <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: 8 }}>
+                {isPositive ? (isHighEnergy ? '🔥' : '🌱') : (isHighEnergy ? '🌪️' : '🌧️')}
+              </span>
+              <h2 style={{ textTransform: 'capitalize', margin: 0, color: 'var(--text)' }}>
+                {result.primary_mood.replace('_', ' ')}
+              </h2>
+            </div>
+
+            <p style={{ fontSize: '1.1rem', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 40 }}>
+              {result.mood_description}
+            </p>
+
+            {/* Radar / Dimensions Visualization */}
+            <div style={{ 
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24,
+              textAlign: 'left', background: 'rgba(0,0,0,0.2)', padding: 24, borderRadius: 16
+            }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Positivity (Valence)</span>
+                  <span style={{ fontWeight: 600 }}>{Math.round((result.mood_valence + 1) * 50)}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${(result.mood_valence + 1) * 50}%`, background: 'var(--success)' }} />
+                </div>
+              </div>
+              
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Energy (Arousal)</span>
+                  <span style={{ fontWeight: 600 }}>{Math.round(result.mood_arousal * 100)}%</span>
+                </div>
+                <div className="progress-bar">
+                  <div className="progress-fill" style={{ width: `${result.mood_arousal * 100}%`, background: 'var(--warning)' }} />
+                </div>
+              </div>
+
+              <div style={{ gridColumn: '1 / -1', marginTop: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: '0.85rem' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Overall Wellbeing Score</span>
+                  <span style={{ fontWeight: 600, color: 'var(--primary)' }}>{result.wellbeing_score}/100</span>
+                </div>
+                <div className="progress-bar" style={{ height: 12 }}>
+                  <div className="progress-fill" style={{ width: `${result.wellbeing_score}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button 
+            className="btn btn-primary btn-lg" 
+            style={{ width: '100%', maxWidth: 400 }}
+            onClick={handleGetMusic}
+          >
+            🎵 Get Music for My Mood
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   // ── Assessment Questions ──
   return (

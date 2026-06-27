@@ -61,37 +61,21 @@ async def generate_recommendations(
         if assessment:
             primary_mood = assessment.primary_mood
 
-    # Check if this is the new Gemini conversational flow
-    if getattr(payload, 'conversational_answers', None):
-        candidates = await gemini_curator.get_recommendations(payload.conversational_answers)
-        
-        # We need a dummy music profile to satisfy the rest of the code
-        music_profile = context_fusion_engine.build_music_profile(
-            primary_mood="calm", activity_type="listening", desired_outcome="enjoy"
-        )
-        music_profile.profile_rationale = "Curated by Gemini AI based on your conversational answers."
-        
-    else:
-        # Legacy Flow
-        # Build music profile via context fusion
-        music_profile = context_fusion_engine.build_music_profile(
-            primary_mood=primary_mood,
-            activity_type=payload.activity_type or "unknown",
-            desired_outcome=payload.desired_outcome,
-        )
-
-        # Get music recommendations
-        music_params = context_fusion_engine.profile_to_music_params(music_profile)
-        music_params["limit"] = 50
-
-        candidates = await music_client.get_recommendations_with_features(music_params)
-
-        if not candidates:
-            # Fallback to mock
-            candidates = music_client._mock_recommendations(music_params)
+    # Build music profile via context fusion
+    music_profile = context_fusion_engine.build_music_profile(
+        primary_mood=primary_mood,
+        activity_type=payload.activity_type or "unknown",
+        desired_outcome=payload.desired_outcome,
+    )
 
     if getattr(payload, 'conversational_answers', None):
-        # For Gemini, the rank is just the order returned, skip ml ranking engine
+        # Pass both conversational_answers AND music_profile to Gemini
+        candidates = await gemini_curator.get_recommendations(
+            answers=payload.conversational_answers,
+            music_profile=music_profile
+        )
+        
+        # For Gemini, the rank is just the order returned
         ranked_tracks = []
         import random
         for i, c in enumerate(candidates):
@@ -101,7 +85,6 @@ async def generate_recommendations(
             c["personal_preference_score"] = random.uniform(0.80, 0.99)
             c["final_score"] = c["mood_alignment_score"]
             c["explanation"] = "Curated specifically for you by Gemini AI."
-            # Dummy audio features so DB doesn't fail
             c["tempo"] = random.uniform(80, 140)
             c["energy"] = random.uniform(0.3, 0.9)
             c["valence"] = random.uniform(0.2, 0.8)
@@ -110,21 +93,26 @@ async def generate_recommendations(
             c["instrumentalness"] = random.uniform(0.01, 0.5)
             c["speechiness"] = random.uniform(0.01, 0.2)
             c["album_art_url"] = c.get("album", {}).get("images", [{}])[0].get("url", None)
-            # Create object-like dict to match the legacy ranking engine output
             class TrackWrapper:
                 def __init__(self, **kwargs):
                     self.__dict__.update(kwargs)
             ranked_tracks.append(TrackWrapper(**c))
+            
     else:
-        # Rank candidates
+        # Legacy Flow
+        music_params = context_fusion_engine.profile_to_music_params(music_profile)
+        music_params["limit"] = 50
+        candidates = await music_client.get_recommendations_with_features(music_params)
+
+        if not candidates:
+            candidates = music_client._mock_recommendations(music_params)
+
         ranked_tracks = ranking_engine.rank_tracks(
             candidates=candidates,
             profile=music_profile,
             historical_ratings=None,
             personal_history=None,
         )
-
-        # Limit to requested length
         ranked_tracks = ranked_tracks[:payload.playlist_length]
 
     # Save to DB
