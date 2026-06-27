@@ -68,61 +68,22 @@ async def generate_recommendations(
         desired_outcome=payload.desired_outcome,
     )
 
-    if getattr(payload, 'conversational_answers', None):
-        # Pass both conversational_answers AND music_profile to Gemini
-        candidates = await gemini_curator.get_recommendations(
-            answers=payload.conversational_answers,
-            music_profile=music_profile
-        )
-        
-        # For Gemini, the rank is just the order returned
-        ranked_tracks = []
-        import random
-        for i, c in enumerate(candidates):
-            c["rank"] = i + 1
-            c["mood_alignment_score"] = random.uniform(0.85, 0.99)
-            c["historical_effectiveness_score"] = random.uniform(0.80, 0.99)
-            c["personal_preference_score"] = random.uniform(0.80, 0.99)
-            c["final_score"] = c["mood_alignment_score"]
-            c["explanation"] = "Curated specifically for you by Gemini AI."
-            c["tempo"] = random.uniform(80, 140)
-            c["energy"] = random.uniform(0.3, 0.9)
-            c["valence"] = random.uniform(0.2, 0.8)
-            c["danceability"] = random.uniform(0.4, 0.9)
-            c["acousticness"] = random.uniform(0.1, 0.8)
-            c["instrumentalness"] = random.uniform(0.01, 0.5)
-            c["speechiness"] = random.uniform(0.01, 0.2)
-            c["album_art_url"] = c.get("album", {}).get("images", [{}])[0].get("url", None)
-            c["album"] = c.get("album", {}).get("name", "Unknown Album")
-            
-            c["spotify_id"] = c.get("id", "gemini_unknown")
-            c["title"] = c.get("name", "Unknown Title")
-            c["artist"] = ", ".join(a.get("name", "") for a in c.get("artists", []))
-            c["spotify_url"] = c.get("external_urls", {}).get("spotify", "")
-            c["duration_ms"] = c.get("duration_ms", 180000)
-            c["preview_url"] = c.get("preview_url", None)
-            
-            class TrackWrapper:
-                def __init__(self, **kwargs):
-                    self.__dict__.update(kwargs)
-            ranked_tracks.append(TrackWrapper(**c))
-            
-    else:
-        # Legacy Flow
-        music_params = context_fusion_engine.profile_to_music_params(music_profile)
-        music_params["limit"] = 50
-        candidates = await music_client.get_recommendations_with_features(music_params)
+    # Always use the reliable iTunes API to fetch and rank tracks. 
+    # This completes the Hybrid Architecture: Gemini extracts mood (done in mood.py), and local ML/iTunes curates tracks.
+    music_params = context_fusion_engine.profile_to_music_params(music_profile)
+    music_params["limit"] = 50
+    candidates = await music_client.get_recommendations_with_features(music_params)
 
-        if not candidates:
-            candidates = music_client._mock_recommendations(music_params)
+    if not candidates:
+        candidates = music_client._mock_recommendations(music_params)
 
-        ranked_tracks = ranking_engine.rank_tracks(
-            candidates=candidates,
-            profile=music_profile,
-            historical_ratings=None,
-            personal_history=None,
-        )
-        ranked_tracks = ranked_tracks[:payload.playlist_length]
+    ranked_tracks = ranking_engine.rank_tracks(
+        candidates=candidates,
+        profile=music_profile,
+        historical_ratings=None,
+        personal_history=None,
+    )
+    ranked_tracks = ranked_tracks[:payload.playlist_length]
 
     # Save to DB
     session = RecommendationSession(
