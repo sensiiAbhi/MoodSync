@@ -10,10 +10,9 @@ from app.models.user import User
 from app.models.mood_assessment import MoodAssessment
 from app.schemas.mood import (
     MoodAssessmentRequest, MoodAssessmentResponse,
-    MoodHistoryItem, CircumplexPosition, ConversationalAssessmentRequest
+    MoodHistoryItem, CircumplexPosition
 )
 from app.ml.mood_classifier import mood_classifier
-from app.services.gemini_curator import gemini_curator
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/mood", tags=["Mood Assessment"])
@@ -28,93 +27,6 @@ def _get_time_of_day(hour: int) -> str:
         return "evening"
     else:
         return "night"
-
-
-@router.post("/assess/conversational", response_model=MoodAssessmentResponse, status_code=201)
-async def submit_conversational_assessment(
-    payload: ConversationalAssessmentRequest,
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """Submit conversational answers, extract ML metrics via Gemini, and classify mood."""
-    now = datetime.now(timezone.utc)
-    
-    # 1. Ask Gemini to extract the 7 ML integer scores
-    scores = await gemini_curator.extract_ml_scores(payload.conversational_answers)
-    
-    # 2. Proceed with normal ML classification
-    classification = mood_classifier.classify(
-        energy_level=scores.get("energy_level", 5),
-        stress_level=scores.get("stress_level", 5),
-        focus_level=scores.get("focus_level", 5),
-        motivation_level=scores.get("motivation_level", 5),
-        sleep_quality=scores.get("sleep_quality", 5),
-        mental_fatigue=scores.get("mental_fatigue", 5),
-        social_mood=scores.get("social_mood", 5),
-    )
-
-    wellbeing = mood_classifier.compute_wellbeing_score(
-        energy_level=scores.get("energy_level", 5),
-        stress_level=scores.get("stress_level", 5),
-        focus_level=scores.get("focus_level", 5),
-        motivation_level=scores.get("motivation_level", 5),
-        sleep_quality=scores.get("sleep_quality", 5),
-        mental_fatigue=scores.get("mental_fatigue", 5),
-        social_mood=scores.get("social_mood", 5),
-    )
-
-    assessment = MoodAssessment(
-        user_id=current_user.id,
-        energy_level=scores.get("energy_level", 5),
-        stress_level=scores.get("stress_level", 5),
-        focus_level=scores.get("focus_level", 5),
-        motivation_level=scores.get("motivation_level", 5),
-        sleep_quality=scores.get("sleep_quality", 5),
-        mental_fatigue=scores.get("mental_fatigue", 5),
-        social_mood=scores.get("social_mood", 5),
-        primary_mood=classification.primary_mood,
-        mood_valence=classification.mood_valence,
-        mood_arousal=classification.mood_arousal,
-        classification_confidence=classification.confidence,
-        assessment_type=payload.assessment_type,
-        time_of_day=_get_time_of_day(now.hour),
-        day_of_week=now.weekday(),
-    )
-    db.add(assessment)
-    await db.commit()
-    await db.refresh(assessment)
-
-    next_steps = {
-        "stressed": "Let's find calming, focused music to help reduce your stress.",
-        "anxious": "We'll find grounding, soothing music to ease your anxiety.",
-        "burned_out": "Restorative, gentle music can help you recover energy.",
-        "sleepy": "Calming music will help you wind down comfortably.",
-        "energetic": "Great energy! Let's find music that matches your vibe.",
-        "motivated": "You're ready to go! High-energy music will keep you in the zone.",
-        "calm": "Music to help you maintain your peaceful state.",
-        "focused": "Instrumental music will support your focus flow.",
-        "relaxed": "Easy-going music to complement your relaxed mood.",
-    }
-
-    return MoodAssessmentResponse(
-        assessment_id=assessment.id,
-        primary_mood=classification.primary_mood,
-        mood_valence=classification.mood_valence,
-        mood_arousal=classification.mood_arousal,
-        classification_confidence=classification.confidence,
-        mood_description=classification.description,
-        secondary_mood=classification.secondary_mood,
-        recommended_next_step=next_steps.get(
-            classification.primary_mood,
-            "Let's find the perfect music for your current state."
-        ),
-        circumplex_position=CircumplexPosition(
-            valence=classification.mood_valence,
-            arousal=classification.mood_arousal,
-            quadrant=classification.circumplex_quadrant,
-        ),
-        wellbeing_score=wellbeing,
-    )
 
 
 @router.post("/assess", response_model=MoodAssessmentResponse, status_code=201)

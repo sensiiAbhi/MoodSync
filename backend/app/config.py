@@ -41,9 +41,6 @@ class Settings(BaseSettings):
     # CORS
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
 
-    # Gemini
-    GEMINI_API_KEY: Optional[str] = None
-
     @property
     def async_database_url(self) -> str:
         """

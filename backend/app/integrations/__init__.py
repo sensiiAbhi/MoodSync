@@ -1,3 +1,3 @@
-from app.integrations.music_client import music_client
+from app.integrations.spotify_client import spotify_client
 
-__all__ = ["music_client"]
+__all__ = ["spotify_client"]

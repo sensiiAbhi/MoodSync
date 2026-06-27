@@ -86,7 +86,7 @@ export default function OnboardingPage() {
             {[
               { icon: '🧠', text: 'Assess your mood in under 2 minutes with 7 questions' },
               { icon: '🎯', text: 'Select your activity and what outcome you want to achieve' },
-              { icon: '✦', text: 'Get 20–30 high-quality music tracks perfectly matched to your psychological state' },
+              { icon: '✦', text: 'Get 20–30 Spotify tracks perfectly matched to your psychological state' },
               { icon: '📊', text: 'Track how music affects your mood and productivity over time' },
             ].map(item => (
               <div key={item.text} style={{

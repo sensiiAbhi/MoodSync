@@ -337,7 +337,7 @@ class ContextFusionEngine:
             + ". Using ISO Principle: music gradually guides your mood toward the desired state."
         )
 
-    def profile_to_music_params(self, profile: MusicProfile) -> Dict[str, Any]:
+    def profile_to_spotify_params(self, profile: MusicProfile) -> dict:
         """Convert MusicProfile to Spotify API recommendation parameters."""
         params = {
             "target_tempo": profile.tempo_target,

@@ -13,17 +13,51 @@ from typing import List, Dict, Any, Optional
 import httpx
 from app.config import settings
 
-class MusicClient:
-    """Async Music API client for iTunes Search."""
+SPOTIFY_API_BASE = "https://api.spotify.com/v1"
+SPOTIFY_AUTH_URL = "https://accounts.spotify.com/api/token"
+
+
+class SpotifyClient:
+    """Async Spotify Web API client with auto-token refresh."""
 
     def __init__(self):
+        self._client_token: Optional[str] = None
+        self._client_token_expires: float = 0
         self._http = httpx.AsyncClient(timeout=10.0)
+
+    # ─────────────────────── AUTH ───────────────────────
+
+    async def _get_client_token(self) -> str:
+        """Get or refresh Client Credentials token."""
+        if self._client_token and time.time() < self._client_token_expires - 60:
+            return self._client_token
+
+        credentials = f"{settings.SPOTIFY_CLIENT_ID}:{settings.SPOTIFY_CLIENT_SECRET}"
+        encoded = base64.b64encode(credentials.encode()).decode()
+
+        resp = await self._http.post(
+            SPOTIFY_AUTH_URL,
+            headers={
+                "Authorization": f"Basic {encoded}",
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            data={"grant_type": "client_credentials"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        self._client_token = data["access_token"]
+        self._client_token_expires = time.time() + data["expires_in"]
+        return self._client_token
+
+    async def _headers(self, user_token: Optional[str] = None) -> Dict[str, str]:
+        token = user_token or await self._get_client_token()
+        return {"Authorization": f"Bearer {token}"}
 
     # ─────────────────────── RECOMMENDATIONS ───────────────────────
 
     async def get_recommendations(
         self,
-        music_params: Dict[str, Any],
+        spotify_params: Dict[str, Any],
         user_token: Optional[str] = None,
     ) -> List[Dict]:
         """
@@ -33,42 +67,36 @@ class MusicClient:
         doesn't break.
         """
         # Build a search query from the seed genres
-        genres = music_params.get("seed_genres", "").split(",")
+        genres = spotify_params.get("seed_genres", "").split(",")
         valid_genres = [g.strip() for g in genres if g.strip()]
         
         query = "+".join(valid_genres[:2]) if valid_genres else "mood"
-        limit = min(int(music_params.get("limit", 20)), 50)
+        limit = min(int(spotify_params.get("limit", 20)), 50)
 
-        try:
-            # Hit the free iTunes API (No auth needed!) using a local context manager to prevent event loop issues
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.get(
-                    "https://itunes.apple.com/search",
-                    params={"term": query, "entity": "song", "limit": limit},
-                )
+        # Hit the free iTunes API (No auth needed!)
+        resp = await self._http.get(
+            "https://itunes.apple.com/search",
+            params={"term": query, "entity": "song", "limit": limit},
+        )
+        
+        if resp.status_code != 200:
+            err_msg = f"iTunes API Error {resp.status_code}: {resp.text}"
+            return self._mock_recommendations(spotify_params, err_msg)
+
+        data = resp.json()
+        results = data.get("results", [])
                 
-                if resp.status_code != 200:
-                    err_msg = f"iTunes API Error {resp.status_code}: {resp.text}"
-                    return self._mock_recommendations(music_params, err_msg)
+        if not results:
+            # Fallback to broader search
+            fallback_resp = await self._http.get(
+                "https://itunes.apple.com/search",
+                params={"term": "pop", "entity": "song", "limit": limit},
+            )
+            if fallback_resp.status_code == 200:
+                results = fallback_resp.json().get("results", [])
 
-                data = resp.json()
-                results = data.get("results", [])
-                        
-                if not results:
-                    # Fallback to broader search
-                    fallback_resp = await client.get(
-                        "https://itunes.apple.com/search",
-                        params={"term": "pop", "entity": "song", "limit": limit},
-                    )
-                    if fallback_resp.status_code == 200:
-                        results = fallback_resp.json().get("results", [])
-
-                if not results:
-                    return self._mock_recommendations(music_params, "Error: iTunes returned 0 tracks")
-                
-        except Exception as e:
-            # Render/Vercel outbound connections might fail or time out
-            return self._mock_recommendations(music_params, f"Connection Error: {str(e)}")
+        if not results:
+            return self._mock_recommendations(spotify_params, "Error: iTunes returned 0 tracks")
             
         # Map iTunes schema to Spotify schema
         tracks = []
@@ -108,8 +136,9 @@ class MusicClient:
         track_ids: List[str],
         user_token: Optional[str] = None,
     ) -> List[Dict]:
-        """Lookup endpoint (not heavily used since we don't sync anymore)."""
-        return []
+        """Fetch full track metadata for a list of IDs."""
+        if not settings.SPOTIFY_CLIENT_ID or not track_ids:
+            return []
 
         headers = await self._headers(user_token)
         results = []
@@ -130,14 +159,14 @@ class MusicClient:
 
     async def get_recommendations_with_features(
         self,
-        music_params: Dict[str, Any],
+        spotify_params: Dict[str, Any],
         user_token: Optional[str] = None,
     ) -> List[Dict]:
         """
         Get tracks via Search and simulate audio_features to power the Ranking Engine
         and UI radar charts.
         """
-        tracks = await self.get_recommendations(music_params, user_token)
+        tracks = await self.get_recommendations(spotify_params, user_token)
 
         if not tracks:
             return []
@@ -154,18 +183,18 @@ class MusicClient:
                 
             # Simulate features based on the ML engine's requested targets
             # This ensures the Ranking Engine and UI charts continue to work perfectly
-            base_tempo = music_params.get("target_tempo", 100.0)
-            base_energy = music_params.get("target_energy", 0.5)
-            base_valence = music_params.get("target_valence", 0.5)
+            base_tempo = spotify_params.get("target_tempo", 100.0)
+            base_energy = spotify_params.get("target_energy", 0.5)
+            base_valence = spotify_params.get("target_valence", 0.5)
             
             simulated_feats = {
                 "tempo": max(60.0, min(180.0, base_tempo + random.uniform(-10.0, 10.0))),
                 "energy": max(0.1, min(1.0, base_energy + random.uniform(-0.15, 0.15))),
                 "valence": max(0.1, min(1.0, base_valence + random.uniform(-0.15, 0.15))),
-                "danceability": max(0.2, min(0.9, music_params.get("target_danceability", 0.6) + random.uniform(-0.1, 0.1))),
-                "acousticness": max(0.01, min(0.99, music_params.get("target_acousticness", 0.3) + random.uniform(-0.1, 0.1))),
-                "instrumentalness": music_params.get("target_instrumentalness", 0.1),
-                "speechiness": music_params.get("target_speechiness", 0.1),
+                "danceability": max(0.2, min(0.9, spotify_params.get("target_danceability", 0.6) + random.uniform(-0.1, 0.1))),
+                "acousticness": max(0.01, min(0.99, spotify_params.get("target_acousticness", 0.3) + random.uniform(-0.1, 0.1))),
+                "instrumentalness": spotify_params.get("target_instrumentalness", 0.1),
+                "speechiness": spotify_params.get("target_speechiness", 0.1),
                 "loudness": random.uniform(-10.0, -4.0),
                 "liveness": random.uniform(0.1, 0.3),
                 "key": random.randint(0, 11),
@@ -178,9 +207,77 @@ class MusicClient:
 
         return merged
 
+    # ─────────────────────── SEARCH ───────────────────────
+
+    async def search_tracks(
+        self,
+        query: str,
+        limit: int = 20,
+        user_token: Optional[str] = None,
+    ) -> List[Dict]:
+        """Search for tracks by query string."""
+        if not settings.SPOTIFY_CLIENT_ID:
+            return []
+
+        headers = await self._headers(user_token)
+        resp = await self._http.get(
+            f"{SPOTIFY_API_BASE}/search",
+            headers=headers,
+            params={"q": query, "type": "track", "limit": limit},
+        )
+        if resp.status_code == 200:
+            return resp.json().get("tracks", {}).get("items", [])
+        return []
+
+    # ─────────────────────── PLAYLIST EXPORT ───────────────────────
+
+    async def create_playlist(
+        self,
+        user_spotify_id: str,
+        name: str,
+        description: str,
+        public: bool,
+        user_token: str,
+    ) -> Optional[str]:
+        """Create a Spotify playlist for the user. Returns playlist ID."""
+        headers = await self._headers(user_token)
+        headers["Content-Type"] = "application/json"
+
+        resp = await self._http.post(
+            f"{SPOTIFY_API_BASE}/users/{user_spotify_id}/playlists",
+            headers=headers,
+            json={"name": name, "description": description, "public": public},
+        )
+        if resp.status_code == 201:
+            return resp.json().get("id")
+        return None
+
+    async def add_tracks_to_playlist(
+        self,
+        playlist_id: str,
+        spotify_track_uris: List[str],
+        user_token: str,
+    ) -> bool:
+        """Add tracks to a Spotify playlist."""
+        headers = await self._headers(user_token)
+        headers["Content-Type"] = "application/json"
+
+        # Max 100 per request
+        for i in range(0, len(spotify_track_uris), 100):
+            batch = spotify_track_uris[i:i+100]
+            resp = await self._http.post(
+                f"{SPOTIFY_API_BASE}/playlists/{playlist_id}/tracks",
+                headers=headers,
+                json={"uris": batch},
+            )
+            if resp.status_code not in (200, 201):
+                return False
+
+        return True
+
     # ─────────────────────── MOCK DATA (dev mode) ───────────────────────
 
-    def _mock_recommendations(self, params: Dict, error_msg: str = "Music API not configured") -> List[Dict]:
+    def _mock_recommendations(self, params: Dict, error_msg: str = "Spotify API not configured") -> List[Dict]:
         """Return realistic mock tracks when Spotify API is not configured or fails."""
         mock_tracks = [
             {
@@ -233,4 +330,4 @@ class MusicClient:
 
 
 # Singleton instance
-music_client = MusicClient()
+spotify_client = SpotifyClient()
