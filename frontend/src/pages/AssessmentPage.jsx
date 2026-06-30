@@ -5,13 +5,6 @@ import toast from 'react-hot-toast'
 
 const QUESTIONS = [
   {
-    id: 'language_preference', label: 'Language Preference',
-    desc: 'What language of songs do you want to listen to?',
-    emoji: '🌍',
-    type: 'select',
-    options: ['English', 'Hindi', 'Japanese', 'Any'],
-  },
-  {
     id: 'energy_level', label: 'Energy Level',
     desc: 'How energetic do you feel right now?',
     emoji: '⚡',
@@ -104,7 +97,6 @@ export default function AssessmentPage() {
     setLoading(true)
     try {
       const payload = {
-        language_preference: data.language_preference || 'English',
         energy_level: data.energy_level || 5,
         stress_level: data.stress_level || 5,
         focus_level: data.focus_level || 5,
@@ -194,7 +186,7 @@ export default function AssessmentPage() {
             <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
               <button
                 className="btn btn-primary btn-lg"
-                onClick={() => navigate('/app/recommend', { state: { assessmentId: result.assessment_id, mood: result.primary_mood, language: answers.language_preference || 'English' } })}
+                onClick={() => navigate('/app/recommend', { state: { assessmentId: result.assessment_id, mood: result.primary_mood } })}
               >
                 ✦ Get Music for My Mood
               </button>

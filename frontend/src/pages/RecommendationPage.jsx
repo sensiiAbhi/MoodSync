@@ -41,6 +41,7 @@ export default function RecommendationPage() {
   const [step, setStep] = useState('select')  // 'select' | 'loading' | 'results'
   const [activity, setActivity] = useState('')
   const [outcome, setOutcome] = useState('')
+  const [language, setLanguage] = useState('Any')
   const [recommendations, setRecommendations] = useState(null)
   const [expandedTrack, setExpandedTrack] = useState(null)
   const [rating, setRating] = useState(0)
@@ -49,7 +50,6 @@ export default function RecommendationPage() {
 
   const assessmentId = location.state?.assessmentId
   const mood = location.state?.mood
-  const language = location.state?.language || 'English'
 
   const handleGenerate = async () => {
     if (!activity) {
@@ -185,7 +185,7 @@ export default function RecommendationPage() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, alignItems: 'start' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 300px', gap: 24, alignItems: 'start' }}>
             {/* Track List */}
             <div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -205,7 +205,7 @@ export default function RecommendationPage() {
                       />
                       <div className="track-info">
                         <div className="track-title">{track.title}</div>
-                        <div className="track-artist">{track.artist} · {track.album}</div>
+                        <div className="track-artist">{track.artist}</div>
                         <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
                           <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                             {formatDuration(track.duration_ms)}
@@ -394,19 +394,43 @@ export default function RecommendationPage() {
           </div>
         </div>
 
-        {/* Outcome Selection */}
+        {/* Language + Outcome Selection */}
         <div style={{ marginBottom: 40 }}>
-          <h3 style={{ marginBottom: 20, fontSize: '1.1rem' }}>What do you want to achieve? <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 400 }}>(optional)</span></h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {OUTCOMES.map(out => (
-              <button
-                key={out.id}
-                onClick={() => setOutcome(outcome === out.id ? '' : out.id)}
-                className={`btn ${outcome === out.id ? 'btn-primary' : 'btn-ghost'}`}
-              >
-                {out.icon} {out.label}
-              </button>
-            ))}
+          <h3 style={{ marginBottom: 20, fontSize: '1.1rem' }}>Language & Outcome</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {/* Language */}
+            <div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 10, fontWeight: 500 }}>🌍 Music Language</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {['Any', 'English', 'Hindi', 'Japanese', 'Korean', 'Spanish'].map(lang => (
+                  <button
+                    key={lang}
+                    onClick={() => setLanguage(lang)}
+                    className={`btn ${language === lang ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ fontSize: '0.8rem', padding: '7px 16px' }}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Outcome */}
+            <div>
+              <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: 10, fontWeight: 500 }}>🎯 Desired Outcome <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 400 }}>(optional)</span></div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {OUTCOMES.map(out => (
+                  <button
+                    key={out.id}
+                    onClick={() => setOutcome(outcome === out.id ? '' : out.id)}
+                    className={`btn ${outcome === out.id ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ fontSize: '0.8rem' }}
+                  >
+                    {out.icon} {out.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 

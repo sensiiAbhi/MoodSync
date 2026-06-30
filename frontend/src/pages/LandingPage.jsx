@@ -53,10 +53,6 @@ export default function LandingPage() {
         }} />
 
         <div style={{ position: 'relative', maxWidth: 800 }}>
-          <div className="badge badge-primary" style={{ marginBottom: 24, fontSize: '0.75rem' }}>
-            🎓 Final Year CS Project · Production-Grade Platform
-          </div>
-
           <h1 style={{
             fontFamily: 'var(--font-heading)', fontWeight: 800,
             fontSize: 'clamp(2.5rem, 6vw, 4.5rem)',
@@ -210,7 +206,7 @@ export default function LandingPage() {
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <h2 style={{ marginBottom: 16 }}>Built for Production</h2>
           <p style={{ color: 'var(--text-secondary)', maxWidth: 520, margin: '0 auto' }}>
-            FastAPI · PostgreSQL · Scikit-Learn · React · Docker — engineered to professional standards.
+            A smart recommendation engine that goes beyond listening history — powered by psychology.
           </p>
         </div>
 
@@ -250,9 +246,6 @@ export default function LandingPage() {
         borderTop: '1px solid var(--border)',
       }}>
         <p>MoodSync © 2026 · Context-Aware Psychological Music Recommendation Platform</p>
-        <p style={{ marginTop: 8 }}>
-          Built with FastAPI · PostgreSQL · Scikit-Learn · React · Spotify API
-        </p>
       </footer>
     </div>
   )
