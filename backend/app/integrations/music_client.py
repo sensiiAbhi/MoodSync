@@ -163,65 +163,96 @@ class SpotifyClient:
         user_token: Optional[str] = None,
     ) -> List[Dict]:
         """
-        Fetch tracks from local songs_db.json, filter by language,
-        and link them to a YouTube search so the user can easily play them.
+        Fetch tracks from language-specific JSON databases,
+        and link them to YouTube so users can play them directly.
+        Supports: English, Hindi, Spanish, Korean, Japanese (and Any = all).
         """
         import json
         import os
         from urllib.parse import quote_plus
-        
-        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "songs_db.json")
-        try:
-            with open(db_path, "r") as f:
-                local_tracks = json.load(f)
-        except Exception as e:
-            print(f"Error loading songs_db.json: {e}")
-            local_tracks = []
 
+        data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
         language_pref = spotify_params.get("language_preference", "Any")
-        
-        # Filter tracks by language if not 'Any'
-        if language_pref != "Any":
-            filtered_tracks = [t for t in local_tracks if t.get("language") == language_pref]
-        else:
-            filtered_tracks = local_tracks
 
-        # Map to Spotify schema but link to YouTube search!
+        # Map language to file name
+        LANGUAGE_FILES = {
+            "English":  "english.json",
+            "Hindi":    "hindi.json",
+            "Spanish":  "spanish.json",
+            "Korean":   "korean.json",
+            "Japanese": "japanese.json",
+        }
+
+        local_tracks: List[Dict] = []
+
+        if language_pref == "Any":
+            # Load all language files and merge
+            for fname in LANGUAGE_FILES.values():
+                fpath = os.path.join(data_dir, fname)
+                try:
+                    with open(fpath, "r", encoding="utf-8") as f:
+                        local_tracks.extend(json.load(f))
+                except Exception as e:
+                    print(f"Warning: Could not load {fname}: {e}")
+        else:
+            fname = LANGUAGE_FILES.get(language_pref)
+            if fname:
+                fpath = os.path.join(data_dir, fname)
+                try:
+                    with open(fpath, "r", encoding="utf-8") as f:
+                        local_tracks = json.load(f)
+                except Exception as e:
+                    print(f"Error loading {fname}: {e}")
+                    local_tracks = []
+            else:
+                print(f"Unknown language preference: {language_pref}, falling back to all")
+                for fname in LANGUAGE_FILES.values():
+                    fpath = os.path.join(data_dir, fname)
+                    try:
+                        with open(fpath, "r", encoding="utf-8") as f:
+                            local_tracks.extend(json.load(f))
+                    except Exception as e:
+                        print(f"Warning: Could not load {fname}: {e}")
+
+        # Map to standard schema and attach YouTube search URL
         merged = []
-        for item in filtered_tracks:
+        for item in local_tracks:
             track_name = item.get("name", "Unknown Track")
             artist_name = item.get("artist", "Unknown Artist")
-            
-            # Create a YouTube search link
-            yt_search = f"https://www.youtube.com/results?search_query={quote_plus(track_name + ' ' + artist_name)}"
-            
+
+            # YouTube search link that opens directly to search results
+            yt_search = (
+                "https://www.youtube.com/results?search_query="
+                + quote_plus(f"{track_name} {artist_name} official")
+            )
+
             merged.append({
                 "id": str(item.get("id")),
                 "name": track_name,
                 "artists": [{"name": artist_name}],
                 "album": {
                     "name": item.get("album", "Unknown Album"),
-                    "images": [{"url": "https://placehold.co/300x300/1e1e24/7c3aed?text=Album+Art"}]
+                    "images": [{"url": "https://placehold.co/300x300/1e1e24/7c3aed?text=🎵"}],
                 },
                 "duration_ms": 180000,
-                "preview_url": None, 
-                "external_urls": {"spotify": yt_search}, # Point to YouTube!
+                "preview_url": None,
+                "external_urls": {"youtube": yt_search},
                 "audio_features": {
-                    "tempo": item.get("tempo", 120.0),
-                    "energy": item.get("energy", 0.5),
-                    "valence": item.get("valence", 0.5),
-                    "danceability": item.get("danceability", 0.5),
-                    "acousticness": item.get("acousticness", 0.5),
+                    "tempo":            item.get("tempo", 120.0),
+                    "energy":           item.get("energy", 0.5),
+                    "valence":          item.get("valence", 0.5),
+                    "danceability":     item.get("danceability", 0.5),
+                    "acousticness":     item.get("acousticness", 0.5),
                     "instrumentalness": item.get("instrumentalness", 0.1),
-                    "speechiness": item.get("speechiness", 0.1),
-                    "loudness": -6.0,
-                    "liveness": item.get("liveness", 0.2),
+                    "speechiness":      item.get("speechiness", 0.1),
+                    "loudness":         -6.0,
+                    "liveness":         item.get("liveness", 0.2),
                     "key": 0,
                     "mode": 1,
                     "time_signature": 4,
-                }
+                },
             })
-            
+
         return merged
 
     # ─────────────────────── SEARCH ───────────────────────

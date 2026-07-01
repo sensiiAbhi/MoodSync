@@ -216,23 +216,25 @@ export default function RecommendationPage() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                        <div style={{
-                          fontSize: '0.75rem', fontWeight: 700,
-                          color: track.scores.mood_alignment > 0.75 ? '#10B981' : 'var(--primary-light)',
-                        }}>
-                          {(track.scores.final_score * 100).toFixed(0)}%
-                        </div>
                         <a
                           href={track.spotify_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={e => e.stopPropagation()}
                           style={{
-                            fontSize: '0.7rem', color: '#1DB954',
-                            textDecoration: 'none', fontWeight: 600,
+                            display: 'inline-flex', alignItems: 'center', gap: 6,
+                            padding: '6px 14px',
+                            background: 'linear-gradient(135deg, #FF0000, #cc0000)',
+                            borderRadius: 20, color: '#fff',
+                            textDecoration: 'none', fontWeight: 700,
+                            fontSize: '0.75rem', whiteSpace: 'nowrap',
+                            boxShadow: '0 2px 8px rgba(255,0,0,0.3)',
+                            transition: 'transform 0.15s, box-shadow 0.15s',
                           }}
+                          onMouseEnter={e => { e.currentTarget.style.transform='scale(1.05)'; e.currentTarget.style.boxShadow='0 4px 16px rgba(255,0,0,0.4)'; }}
+                          onMouseLeave={e => { e.currentTarget.style.transform='scale(1)'; e.currentTarget.style.boxShadow='0 2px 8px rgba(255,0,0,0.3)'; }}
                         >
-                          ▶ Spotify
+                          ▶ Play
                         </a>
                       </div>
                     </div>

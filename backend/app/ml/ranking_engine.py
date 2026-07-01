@@ -98,7 +98,10 @@ class RankingEngine:
                     album=track.get("album", {}).get("name", ""),
                     duration_ms=track.get("duration_ms", 0),
                     preview_url=track.get("preview_url"),
-                    spotify_url=track.get("external_urls", {}).get("spotify", ""),
+                    spotify_url=(
+                        track.get("external_urls", {}).get("youtube")
+                        or track.get("external_urls", {}).get("spotify", "")
+                    ),
                     album_art_url=(
                         track.get("album", {}).get("images", [{}])[0].get("url")
                         if track.get("album", {}).get("images")

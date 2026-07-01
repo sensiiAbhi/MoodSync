@@ -113,6 +113,9 @@ async def generate_recommendations(
     # Upsert tracks and save recommendation_tracks
     track_responses = []
     for st in ranked_tracks:
+        # Determine play URL (prefer youtube_url, fall back to spotify_url)
+        play_url = getattr(st, 'youtube_url', None) or getattr(st, 'spotify_url', None) or ''
+
         # Upsert track
         result = await db.execute(
             select(Track).where(Track.spotify_id == st.spotify_id)
@@ -127,7 +130,7 @@ async def generate_recommendations(
                 album=st.album,
                 duration_ms=st.duration_ms,
                 preview_url=st.preview_url,
-                spotify_url=st.spotify_url,
+                spotify_url=play_url,
                 album_art_url=st.album_art_url,
                 tempo=st.tempo,
                 energy=st.energy,
@@ -165,7 +168,7 @@ async def generate_recommendations(
                 duration_ms=st.duration_ms,
                 album_art_url=st.album_art_url,
                 preview_url=st.preview_url,
-                spotify_url=st.spotify_url,
+                spotify_url=play_url,
                 scores=TrackScores(
                     mood_alignment=st.mood_alignment_score,
                     historical_effectiveness=st.historical_effectiveness_score,
